@@ -71,7 +71,7 @@ static const void* extension_data (const char *uri)
 /* descriptor */
 static LV2_Descriptor const descriptor =
 {
-    "https://github.com/kenankofer/lv2-practice/myAmp",
+    "https://github.com/kenakofer/lv2-practice/myAmp",
     instantiate,
     connect_port,
     activate, /* or NULL */
