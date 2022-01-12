@@ -17,3 +17,5 @@
 @prefix work:  <http://lv2plug.in/ns/ext/worker#> .
 @prefix rsz: <http://lv2plug.in/ns/ext/resize-port#> .
 @prefix ui: <http://lv2plug.in/ns/extensions/ui#> .
+@prefix units: <http://lv2plug.in/ns/extensions/units#> .
+@prefix pprops: <http://lv2plug.in/ns/ext/port-props#> .
