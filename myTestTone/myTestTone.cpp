@@ -14,6 +14,8 @@ private:
     float* level_ptr;
     double rate;
     double position;
+    float actual_freq;
+    float actual_level;
 
 public:
     MyTestTone(const double sample_rate);
@@ -27,7 +29,8 @@ MyTestTone::MyTestTone (const double sample_rate) :
     freq_ptr (nullptr),
     level_ptr (nullptr),
     rate (sample_rate),
-    position (0.0)
+    position (0.0),
+    actual_freq (0.0)
 {
 
 }
@@ -53,6 +56,8 @@ void MyTestTone::connectPort(const uint32_t port, void* data_location)
 void MyTestTone::activate()
 {
     position = 0.0;
+    actual_freq = 440.0;
+    actual_level = 0.1;
 }
 
 void MyTestTone::run(const uint32_t sample_count)
@@ -61,8 +66,10 @@ void MyTestTone::run(const uint32_t sample_count)
 
     for (uint32_t i = 0; i < sample_count; ++i)
     {
-        audio_out_ptr[i] = sin(2.0 * M_PI * position) * *level_ptr;
-        position += *freq_ptr / rate;
+        actual_freq = *freq_ptr * .001 + actual_freq * .999;
+        actual_level = *level_ptr * .001 + actual_level * .999;
+        audio_out_ptr[i] = sin(2.0 * M_PI * position) * actual_level;
+        position += actual_freq / rate;
     }
 }
 
