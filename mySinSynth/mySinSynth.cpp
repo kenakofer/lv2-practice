@@ -10,6 +10,11 @@
 #include <lv2/core/lv2_util.h>
 #include <lv2/atom/util.h>
 
+// For debug
+// #include <iostream>
+// #include <string>
+// #include <cstdio>
+
 enum ControlPorts
 {
     CONTROL_ATTACK = 0,
@@ -18,19 +23,139 @@ enum ControlPorts
     CONTROL_RELEASE = 3,
     CONTROL_LEVEL = 4,
     CONTROL_NR = 5
-}
+};
+
 enum PortGroups
 {
-    PORT_MIDI_IN = 0
-    PORT_AUDIO_OUT = 1
+    PORT_MIDI_IN = 0,
+    PORT_AUDIO_OUT = 1,
     PORT_CONTROL = 2,
     PORT_NR = 3
-}
+};
 
 struct Urids
 {
     LV2_URID midi_MidiEvent;
 };
+
+enum KeyStatus
+{
+    KEY_OFF,
+    KEY_PRESSED,
+    KEY_RELEASED
+};
+
+struct Envelope
+{
+    double attack;
+    double decay;
+    float sustain;
+    double release;
+};
+
+class Key
+{
+private:
+    KeyStatus status;
+    uint8_t note;
+    uint8_t velocity;
+    Envelope envelope;
+    double rate;
+    double position;
+    float start_level;
+    double freq;
+    double time;
+
+
+public:
+    Key (const double rt);
+    void press (const uint8_t nt, const uint8_t vel, const Envelope env);
+    void release (const uint8_t nt, const uint8_t vel);
+    void off ();
+    float get ();
+    void proceed ();
+
+private:
+    float adsr ();
+
+};
+
+Key::Key(const double rt) :
+    status (KEY_OFF),
+    note (0),
+    velocity (0),
+    envelope {0.0, 0.0, 0.0f, 0.0},
+    rate (rt),
+    position (0.0),
+    start_level (0.0f),
+    freq (pow (2.0, (double (note) - 69.0) / 12.0) * 440.0),
+    time (0.0)
+{
+
+}
+
+void Key::press(const uint8_t nt, const uint8_t vel, const Envelope env)
+{
+    start_level = adsr();
+    note = nt;
+    velocity = vel;
+    envelope = env;
+    status = KEY_PRESSED;
+    freq = pow (2.0, (double (note) - 69.0) / 12.0) * 440.0;
+    time = 0.0;
+}
+void Key::release(const uint8_t nt, const uint8_t vel)
+{
+    if ((status == KEY_PRESSED) && (note == nt)) {
+        start_level = adsr();
+        time = 0.0;
+        status = KEY_RELEASED;
+    }
+}
+void Key::off()
+{
+    position = 0.0;
+    status = KEY_OFF;
+}
+
+/* Return the current level of the envelope (0-1) */
+inline float Key::adsr()
+{
+    switch (status)
+    {
+        case KEY_PRESSED:
+            if (time < envelope.attack) {
+                return start_level + (1.0 - start_level) * time / envelope.attack;
+            }
+            else if (time < envelope.attack + envelope.decay) {
+                /* decay phase */
+                return 1.0f + (time - envelope.attack) / envelope.decay * (envelope.sustain - 1.0f);
+            } else {
+                /* sustain phase */
+                return envelope.sustain;
+            }
+        case KEY_RELEASED:
+            if (time < envelope.release) {
+                return start_level * (1.0f - time / envelope.release);
+            }
+            return 1.0f;
+        default:
+            return 0.0f;
+    }
+}
+
+float Key::get()
+{
+    return  adsr() *
+            sin (2.0 * M_PI * position) *
+            (float (velocity) / 127.0f);
+}
+inline void Key::proceed()
+{
+    time += 1.0 / rate;
+    position += freq / rate;
+    if ((status == KEY_RELEASED) && (time >= envelope.release)) off();
+}
 
 /* class definiton */
 class MySinSynth
@@ -38,13 +163,14 @@ class MySinSynth
 private:
     const LV2_Atom_Sequence* midi_in_ptr;
     float* audio_out_ptr;
-    const float* control_ptr[CONTROL_NR]
+    const float* control_ptr[CONTROL_NR];
     Urids urids;
     double rate;
     double position;
     float actual_freq;
     float actual_level;
     LV2_URID_Map* map;
+    Key key;
 
 public:
     MySinSynth(const double sample_rate, const LV2_Feature *const *features);
@@ -62,8 +188,9 @@ MySinSynth::MySinSynth (const double sample_rate, const LV2_Feature *const *feat
     control_ptr {nullptr},
     rate (sample_rate),
     position (0.0),
-    actual_freq (0.0)
-    map (nullptr);
+    actual_freq (0.0),
+    map (nullptr),
+    key (rate)
 {
     const char* missing = lv2_features_query(
         features,
@@ -105,11 +232,12 @@ void MySinSynth::activate()
 }
 
 
-void play (const uint32_t start, const uint32_t end)
+void MySinSynth::play (const uint32_t start, const uint32_t end)
 {
-    for (uint32_t i = start, i < end; ++i)
+    for (uint32_t i = start; i < end; ++i)
     {
-        //TODO
+        audio_out_ptr[i] = key.get() * *control_ptr[CONTROL_LEVEL];
+        key.proceed();
     }
 }
 
@@ -131,15 +259,28 @@ void MySinSynth::run(const uint32_t sample_count)
         last_frame = frame;
 
         if (ev->body.type == urids.midi_MidiEvent) {
-            const uint8_t* const msg = (const uint8_t*) (ev + 1)
+            const uint8_t* const msg = (const uint8_t*) (ev + 1);
             const uint8_t typ = lv2_midi_message_type (msg);
 
-            switch (type) {
+            switch (typ) {
                 case LV2_MIDI_MSG_NOTE_ON:
+                    key.press(
+                        msg[1], /* note */
+                        msg[2], /* velocity */
+                        {
+                            *control_ptr[CONTROL_ATTACK],
+                            *control_ptr[CONTROL_DECAY],
+                            *control_ptr[CONTROL_SUSTAIN],
+                            *control_ptr[CONTROL_RELEASE]
+                        }
+                    );
                     break;
                 case LV2_MIDI_MSG_NOTE_OFF:
+                    key.release (msg[1], msg[2]);
                     break;
                 case LV2_MIDI_MSG_CONTROLLER:
+                    if (msg[1] == LV2_MIDI_CTL_ALL_NOTES_OFF) key.off();
+                    else if (msg[1] == LV2_MIDI_CTL_ALL_SOUNDS_OFF) key.off();
                     break;
             }
         }
