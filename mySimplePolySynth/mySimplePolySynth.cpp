@@ -19,6 +19,7 @@
 #include <lv2/core/lv2_util.h>
 #include <lv2/atom/util.h>
 
+#include "BMap.hpp"
 #include "Limit.hpp"
 #include "LinearFader.hpp"
 #include "Key.hpp"
@@ -72,7 +73,7 @@ private:
     float actual_freq;
     float actual_level;
     LV2_URID_Map* map;
-    std::array<Key, 128>  key;
+    BUtilities::BMap<uint8_t, Key, 128> key;
 
 public:
     MySimplePolySynth(const double sample_rate, const LV2_Feature *const *features);
@@ -92,11 +93,11 @@ MySimplePolySynth::MySimplePolySynth (const double sample_rate, const LV2_Featur
     controlLevel (0.0f),
     position (0.0),
     actual_freq (0.0),
-    map (nullptr)
+    map (nullptr),
+    key ()
 {
     control_ptr.fill(nullptr);
     control.fill(0.0f);
-    key.fill (Key (rate));
 
     const char* missing = lv2_features_query(
         features,
@@ -143,11 +144,16 @@ void MySimplePolySynth::play (const uint32_t start, const uint32_t end)
     for (uint32_t i = start; i < end; ++i)
     {
         audio_out_ptr[i] = 0.0f;
-        for (Key& k : key) {
-            if (!k.isOn()) continue;
+        for (BUtilities::BMap<uint8_t, Key, 128>::iterator it = key.begin(); it < key.end(); /* empty */) {
+            BUtilities::BMap<uint8_t, Key, 128>::reference k = *it;
 
-            audio_out_ptr[i] += k.get() * controlLevel.get();
-            k.proceed();
+            if (k.second.isOn()) {
+                audio_out_ptr[i] += k.second.get() * controlLevel.get();
+                k.second.proceed();
+                ++it;
+            } else {
+                it = key.erase(it);
+            }
         }
         controlLevel.proceed();
     }
@@ -202,13 +208,13 @@ void MySimplePolySynth::run(const uint32_t sample_count)
                     break;
                 case LV2_MIDI_MSG_CONTROLLER:
                     if (msg[1] == LV2_MIDI_CTL_ALL_NOTES_OFF) {
-                        for (Key& k : key) {
-                            k.release();
+                        for (BUtilities::BMap<uint8_t, Key, 128>::reference k : key) {
+                            k.second.release();
                         }
                     }
                     else if (msg[1] == LV2_MIDI_CTL_ALL_SOUNDS_OFF) {
-                        for (Key& k : key) {
-                            k.mute();
+                        for (BUtilities::BMap<uint8_t, Key, 128>::reference k : key) {
+                            k.second.mute();
                         }
                     }
                     break;
