@@ -7,8 +7,7 @@ enum Waveform
     WAVEFORM_TRIANGLE   = 1,
     WAVEFORM_SQUARE     = 2,
     WAVEFORM_SAW        = 3,
-    WAVEFORM_NOISE      = 4,
-    WAVEFORM_NR         = 5
+    WAVEFORM_NR         = 4
 };
 
 #endif /* WAVEFORM_HPP_ */

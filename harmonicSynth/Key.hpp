@@ -142,7 +142,6 @@ inline float Key::synth()
         case WAVEFORM_TRIANGLE: return (p < 0.25f ? 4.0f * p : (p < 0.75f ? 1.0f - 4.0 * (p - 0.25f) : -1.0f + 4.0f * (p - 0.75f)));
         case WAVEFORM_SQUARE:   return (p < 0.5f ? 1.0f : -1.0f);
         case WAVEFORM_SAW:      return 2.0f * p - 1.0f;
-        case WAVEFORM_NOISE:    return dist (rnd);
         default:                return 0.0f;
     }
 }
