@@ -23,6 +23,7 @@
 #include "Limit.hpp"
 #include "LinearFader.hpp"
 #include "Key.hpp"
+#include "LowPassBasic.hpp"
 
 enum ControlPorts
 {
@@ -74,6 +75,8 @@ private:
     float actual_level;
     LV2_URID_Map* map;
     BUtilities::BMap<uint8_t, Key, 128> key;
+    LowPassBasic low_pass;
+
 
 public:
     MySimplePolySynth(const double sample_rate, const LV2_Feature *const *features);
@@ -94,7 +97,8 @@ MySimplePolySynth::MySimplePolySynth (const double sample_rate, const LV2_Featur
     position (0.0),
     actual_freq (0.0),
     map (nullptr),
-    key ()
+    key (),
+    low_pass ()
 {
     control_ptr.fill(nullptr);
     control.fill(0.0f);
@@ -149,6 +153,7 @@ void MySimplePolySynth::play (const uint32_t start, const uint32_t end)
 
             if (k.second.isOn()) {
                 audio_out_ptr[i] += k.second.get() * controlLevel.get();
+                // audio_out_ptr[i] = low_pass.transform(audio_out_ptr[i]);
                 k.second.proceed();
                 ++it;
             } else {
