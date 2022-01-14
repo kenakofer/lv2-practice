@@ -161,6 +161,7 @@ inline float Key::synthPartials()
 {
     float value = 0.0f;
     for (int i=0; i<PARTIAL_NR; i++) {
+        if (partials[i].amplitude == 0.0) continue;
         value += partials[i].amplitude *
                 partials[i].attenuation *
                 sin(2.0 * M_PI * (i+1) * position);
