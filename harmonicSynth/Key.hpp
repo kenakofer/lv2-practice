@@ -5,10 +5,13 @@
 #include <cmath>
 #include <random>
 #include <ctime>
+#include <array>
 #include "LinearFader.hpp"
 #include "Waveform.hpp"
 #include "Envelope.hpp"
 #include "KeyStatus.hpp"
+#include "Sine.hpp"
+#include "Filter.hpp"
 
 class Key
 {
@@ -26,11 +29,13 @@ private:
     LinearFader<float> fader;
     std::minstd_rand rnd;
     std::uniform_real_distribution<float> dist;
+    std::array<Sine, PARTIAL_NR> partials;
+    Filter filter;
 
 public:
     Key ();
     Key (const double rt);
-    void press (const Waveform wf, const uint8_t nt, const uint8_t vel, const Envelope env);
+    void press (const Waveform wf, const uint8_t nt, const uint8_t vel, const Envelope env, const Filter f);
     void release ();
     void release (const uint8_t nt, const uint8_t vel);
     void off ();
@@ -42,6 +47,7 @@ public:
 private:
     float adsr ();
     float synth ();
+    float synthPartials ();
 };
 
 inline Key::Key () :
@@ -63,12 +69,18 @@ inline Key::Key (const double rt) :
     time (0.0),
     fader (1.0f),
     rnd (std::time (0)),
-    dist (-1.0f, 1.0f)
+    dist (-1.0f, 1.0f),
+    partials (),
+    filter ()
 {
-
+    for (int i=0; i<PARTIAL_NR; i++) {
+        partials[i].amplitude = PARTIAL_AMPLITUDES[waveform][i];
+        partials[i].freq = freq * (i + 1);
+        partials[i].attenuation = 1.0f;
+    }
 }
 
-inline void Key::press (const Waveform wf, const uint8_t nt, const uint8_t vel, const Envelope env)
+inline void Key::press (const Waveform wf, const uint8_t nt, const uint8_t vel, const Envelope env, const Filter f)
 {
     start_level = adsr();
     note = nt;
@@ -79,6 +91,12 @@ inline void Key::press (const Waveform wf, const uint8_t nt, const uint8_t vel, 
     fader.set (1.0f, 0.0);
     waveform = wf;
     status = KEY_PRESSED;
+    filter = f;
+    for (int i=0; i<PARTIAL_NR; i++) {
+        partials[i].amplitude = PARTIAL_AMPLITUDES[waveform][i];
+        partials[i].freq = freq * (i + 1);
+        partials[i].attenuation = filter.attenuationForFreq(partials[i].freq);
+    }
 }
 
 inline void Key::release ()
@@ -132,6 +150,17 @@ inline float Key::adsr ()
     }
 }
 
+inline float Key::synthPartials()
+{
+    float value = 0.0f;
+    for (int i=0; i<PARTIAL_NR; i++) {
+        value += partials[i].amplitude *
+                partials[i].attenuation *
+                sin(2.0 * M_PI * i * position);
+    }
+    return value;
+}
+
 inline float Key::synth()
 {
     const float p = fmod (position, 1.0);
@@ -149,7 +178,8 @@ inline float Key::synth()
 inline float Key::get ()
 {
     return  adsr() *
-            synth () *
+            // synth () *
+            synthPartials() *
             (static_cast<float> (velocity) / 127.0f) *
             fader.get();
 }

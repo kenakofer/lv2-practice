@@ -24,6 +24,7 @@
 #include "LinearFader.hpp"
 #include "Key.hpp"
 #include "LowPassBasic.hpp"
+#include "Filter.hpp"
 
 enum ControlPorts
 {
@@ -76,6 +77,7 @@ private:
     LV2_URID_Map* map;
     BUtilities::BMap<uint8_t, Key, 128> key;
     LowPassBasic low_pass;
+    Filter filter;
 
 
 public:
@@ -98,7 +100,8 @@ HarmonicSynth::HarmonicSynth (const double sample_rate, const LV2_Feature *const
     actual_freq (0.0),
     map (nullptr),
     key (),
-    low_pass ()
+    low_pass (),
+    filter ()
 {
     control_ptr.fill(nullptr);
     control.fill(0.0f);
@@ -205,7 +208,8 @@ void HarmonicSynth::run(const uint32_t sample_count)
                             control[CONTROL_DECAY],
                             control[CONTROL_SUSTAIN],
                             control[CONTROL_RELEASE]
-                        }
+                        },
+                        filter
                     );
                     break;
                 case LV2_MIDI_MSG_NOTE_OFF:
