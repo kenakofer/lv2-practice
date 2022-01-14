@@ -30,12 +30,12 @@ private:
     std::minstd_rand rnd;
     std::uniform_real_distribution<float> dist;
     std::array<Sine, PARTIAL_NR> partials;
-    Filter filter;
+    Filter* filter;
 
 public:
     Key ();
     Key (const double rt);
-    void press (const Waveform wf, const uint8_t nt, const uint8_t vel, const Envelope env, const Filter f);
+    void press (const Waveform wf, const uint8_t nt, const uint8_t vel, const Envelope env, Filter *f);
     void release ();
     void release (const uint8_t nt, const uint8_t vel);
     void off ();
@@ -43,6 +43,7 @@ public:
     float get ();
     void proceed ();
     bool isOn();
+    void refreshFilter();
 
 private:
     float adsr ();
@@ -80,7 +81,7 @@ inline Key::Key (const double rt) :
     }
 }
 
-inline void Key::press (const Waveform wf, const uint8_t nt, const uint8_t vel, const Envelope env, const Filter f)
+inline void Key::press (const Waveform wf, const uint8_t nt, const uint8_t vel, const Envelope env, Filter *f)
 {
     start_level = adsr();
     note = nt;
@@ -95,7 +96,13 @@ inline void Key::press (const Waveform wf, const uint8_t nt, const uint8_t vel, 
     for (int i=0; i<PARTIAL_NR; i++) {
         partials[i].amplitude = PARTIAL_AMPLITUDES[waveform][i];
         partials[i].freq = freq * (i + 1);
-        partials[i].attenuation = filter.attenuationForFreq(partials[i].freq);
+        partials[i].attenuation = (*filter).attenuationForFreq(partials[i].freq);
+    }
+}
+
+inline void Key::refreshFilter() {
+    for (int i=0; i<PARTIAL_NR; i++) {
+        partials[i].attenuation = (*filter).attenuationForFreq(partials[i].freq);
     }
 }
 

@@ -187,17 +187,28 @@ void HarmonicSynth::run(const uint32_t sample_count)
     }
 
     /* copy and validate control port values */
+    bool refresh_filter = false;
     for (int i=0; i<CONTROL_NR; ++i) {
         if (*control_ptr[i] != control[i]) {
             control[i] = limit<float> (*control_ptr[i], controlLimit[i].first, controlLimit[i].second);
             if (i == CONTROL_LEVEL) controlLevel.set (control[i], 0.01 * rate);
+            if (i == CONTROL_CUTOFF_FREQ || i == CONTROL_PEAK_FREQ || i == CONTROL_PEAK_HEIGHT) {
+                refresh_filter = true;
+            }
         }
     }
-    filter.setValues(
-        control[CONTROL_CUTOFF_FREQ],
-        control[CONTROL_PEAK_FREQ],
-        control[CONTROL_PEAK_HEIGHT]
-    );
+
+    if (refresh_filter) {
+        filter.setValues(
+            control[CONTROL_CUTOFF_FREQ],
+            control[CONTROL_PEAK_FREQ],
+            control[CONTROL_PEAK_HEIGHT]
+        );
+        for (BUtilities::BMap<uint8_t, Key, 128>::reference k : key) {
+            std::cout << "Refreshing filter" << std::endl;
+            k.second.refreshFilter();
+        }
+    }
 
     /* analyze incoming midi data */
     uint32_t last_frame = 0;
@@ -224,7 +235,7 @@ void HarmonicSynth::run(const uint32_t sample_count)
                             control[CONTROL_SUSTAIN],
                             control[CONTROL_RELEASE]
                         },
-                        filter
+                        &filter
                     );
                     break;
                 case LV2_MIDI_MSG_NOTE_OFF:
