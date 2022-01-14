@@ -156,7 +156,7 @@ inline float Key::synthPartials()
     for (int i=0; i<PARTIAL_NR; i++) {
         value += partials[i].amplitude *
                 partials[i].attenuation *
-                sin(2.0 * M_PI * i * position);
+                sin(2.0 * M_PI * (i+1) * position);
     }
     return value;
 }
