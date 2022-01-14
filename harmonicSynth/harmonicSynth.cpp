@@ -75,6 +75,9 @@ private:
     std::array<const float*, CONTROL_NR> control_ptr;
     std::array<float, CONTROL_NR> control;
     LinearFader<float> controlLevel;
+    LinearFader<float> controlFilterPeak;
+    LinearFader<float> controlFilterPeakHeight;
+    LinearFader<float> controlFilterCutoff;
     Urids urids;
     double rate;
     double position;
@@ -94,6 +97,7 @@ public:
 
 private:
     void play (const uint32_t start, const uint32_t end);
+    void checkUpdateFilter ();
 };
 
 HarmonicSynth::HarmonicSynth (const double sample_rate, const LV2_Feature *const *features) :
@@ -102,6 +106,9 @@ HarmonicSynth::HarmonicSynth (const double sample_rate, const LV2_Feature *const
     control_ptr {nullptr},
     rate (sample_rate),
     controlLevel (0.0f),
+    controlFilterPeak (0.0f),
+    controlFilterPeakHeight (0.0f),
+    controlFilterCutoff (0.0f),
     position (0.0),
     actual_freq (0.0),
     map (nullptr),
@@ -151,6 +158,23 @@ void HarmonicSynth::activate()
     actual_level = 0.1;
 }
 
+void HarmonicSynth::checkUpdateFilter() {
+    if (controlFilterCutoff.proceed() ||
+            controlFilterPeak.proceed() ||
+            controlFilterPeakHeight.proceed()) {
+
+        filter.setValues(
+            controlFilterCutoff.get(),
+            controlFilterPeak.get(),
+            controlFilterPeakHeight.get()
+        );
+        for (BUtilities::BMap<uint8_t, Key, 128>::reference k : key) {
+            //  std::cout << "Refreshing filterpeak: " << controlFilterPeak.get() << std::endl;
+            k.second.refreshFilter();
+        }
+    }
+
+}
 
 void HarmonicSynth::play (const uint32_t start, const uint32_t end)
 {
@@ -170,6 +194,7 @@ void HarmonicSynth::play (const uint32_t start, const uint32_t end)
             }
         }
         controlLevel.proceed();
+        if (i % 100 == 0) checkUpdateFilter();
     }
 }
 
@@ -198,16 +223,11 @@ void HarmonicSynth::run(const uint32_t sample_count)
         }
     }
 
+    /* filter refreshing and control moving */
     if (refresh_filter) {
-        filter.setValues(
-            control[CONTROL_CUTOFF_DIFF],
-            control[CONTROL_PEAK_FREQ],
-            control[CONTROL_PEAK_HEIGHT]
-        );
-        for (BUtilities::BMap<uint8_t, Key, 128>::reference k : key) {
-            std::cout << "Refreshing filter" << std::endl;
-            k.second.refreshFilter();
-        }
+        controlFilterCutoff.set(control[CONTROL_CUTOFF_DIFF], 0.01 * rate / 100);
+        controlFilterPeak.set(control[CONTROL_PEAK_FREQ], 0.01 * rate / 100);
+        controlFilterPeakHeight.set(control[CONTROL_PEAK_HEIGHT], 0.01 * rate / 100);
     }
 
     /* analyze incoming midi data */

@@ -32,14 +32,20 @@ public:
         return value_;
     }
 
-    void proceed ()
+    bool proceed ()
     {
-        if (distance_ == 0) value_ = destination_;
-        else
-        {
+        if (distance_ == 0) {
+            value_ = destination_;
+            return false;
+        } else {
             value_ += (destination_ - value_) * (1.0 / static_cast<double> (distance_));
             distance_ -= 1;
+            return true;
         }
+    }
+
+    bool isMoving() {
+        return (distance_ != 0);
     }
 };
 
