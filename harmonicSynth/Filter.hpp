@@ -214,10 +214,15 @@ inline float Filter::getValueInNoise(float freq, float pos) {
     // Pos is in cycles
     //
     float samples_per_cycle = 44100.0f / 750;
-    int index = ((int)(samples_per_cycle * pos)) % WHITEBAND500TO1K_LENGTH;
     // TODO filtering
     // std::cout << "Sending white noise sample " << WHITEBAND10K20K_SAMPLES[index] << std::endl;
-    return WHITEBAND500TO1K_SAMPLES[index];
+    float value = 0.0f;
+    for (float i=0; i<20; i+=.96f) {
+        if (freq * i > 20000) break;
+        int index = ((int)(samples_per_cycle * pos * (i+i))) % WHITEBAND500TO1K_LENGTH;
+        value += WHITEBAND500TO1K_SAMPLES[index] * attenuationForFreq(KEY_TRACK_FREQUENCY * (i+1));
+    }
+    return value;
 }
 
 #endif
