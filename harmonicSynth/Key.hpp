@@ -42,7 +42,6 @@ public:
     float get ();
     void proceed ();
     bool isOn();
-    void refreshFilter();
 
 private:
     float adsr ();
@@ -91,10 +90,6 @@ inline void Key::press (const Waveform wf, const uint8_t nt, const uint8_t vel, 
     filter = f;
 
     // std::cout << "Starting note with freq: " << freq << std::endl;
-}
-
-inline void Key::refreshFilter() {
-
 }
 
 inline void Key::release ()
