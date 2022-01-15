@@ -89,6 +89,8 @@ inline void Key::press (const Waveform wf, const uint8_t nt, const uint8_t vel, 
     waveform = wf;
     status = KEY_PRESSED;
     filter = f;
+
+    // std::cout << "Starting note with freq: " << freq << std::endl;
 }
 
 inline void Key::refreshFilter() {
@@ -148,7 +150,7 @@ inline float Key::adsr ()
 
 inline float Key::synthPartials()
 {
-    return (*filter).valueInWave(position);
+    return (*filter).valueInWave(freq, position);
 
 }
 
