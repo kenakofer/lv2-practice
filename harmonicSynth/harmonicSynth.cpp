@@ -48,7 +48,7 @@ constexpr std::array<std::pair<float, float>, CONTROL_NR> controlLimit =
     {0.0f, 1.0f},
     {0.001f, 4.0f},
     {0.0f, 1.0f},
-    {-20000.0f, 20000.0f},
+    {-10000.0f, 10000.0f},
     {20.0f, 20000.0f},
     {1.0f, 2.0f},
 }};
@@ -166,7 +166,8 @@ void HarmonicSynth::checkUpdateFilter() {
         filter.setValues(
             controlFilterCutoff.get(),
             controlFilterPeak.get(),
-            controlFilterPeakHeight.get()
+            controlFilterPeakHeight.get(),
+            static_cast<Waveform> (control[CONTROL_WAVEFORM])
         );
         for (BUtilities::BMap<uint8_t, Key, 128>::reference k : key) {
             //  std::cout << "Refreshing filterpeak: " << controlFilterPeak.get() << std::endl;

@@ -29,7 +29,6 @@ private:
     LinearFader<float> fader;
     std::minstd_rand rnd;
     std::uniform_real_distribution<float> dist;
-    std::array<Sine, PARTIAL_NR> partials;
     Filter* filter;
 
 public:
@@ -49,6 +48,8 @@ private:
     float adsr ();
     float synth ();
     float synthPartials ();
+    void setCachedValue(double pos, float val);
+    float getCachedValue(double pos);
 };
 
 inline Key::Key () :
@@ -71,14 +72,9 @@ inline Key::Key (const double rt) :
     fader (1.0f),
     rnd (std::time (0)),
     dist (-1.0f, 1.0f),
-    partials (),
     filter ()
 {
-    for (int i=0; i<PARTIAL_NR; i++) {
-        partials[i].amplitude = PARTIAL_AMPLITUDES[waveform][i];
-        partials[i].freq = freq * (i + 1);
-        partials[i].attenuation = 1.0f;
-    }
+
 }
 
 inline void Key::press (const Waveform wf, const uint8_t nt, const uint8_t vel, const Envelope env, Filter *f)
@@ -93,17 +89,10 @@ inline void Key::press (const Waveform wf, const uint8_t nt, const uint8_t vel, 
     waveform = wf;
     status = KEY_PRESSED;
     filter = f;
-    for (int i=0; i<PARTIAL_NR; i++) {
-        partials[i].amplitude = PARTIAL_AMPLITUDES[waveform][i];
-        partials[i].freq = freq * (i + 1);
-        partials[i].attenuation = (*filter).attenuationForFreq(partials[i].freq);
-    }
 }
 
 inline void Key::refreshFilter() {
-    for (int i=0; i<PARTIAL_NR; i++) {
-        partials[i].attenuation = (*filter).attenuationForFreq(partials[i].freq);
-    }
+
 }
 
 inline void Key::release ()
@@ -159,14 +148,8 @@ inline float Key::adsr ()
 
 inline float Key::synthPartials()
 {
-    float value = 0.0f;
-    for (int i=0; i<PARTIAL_NR; i++) {
-        if (partials[i].amplitude == 0.0) continue;
-        value += partials[i].amplitude *
-                partials[i].attenuation *
-                sin(2.0 * M_PI * (i+1) * position);
-    }
-    return value;
+    return (*filter).valueInWave(position);
+
 }
 
 inline float Key::synth()
