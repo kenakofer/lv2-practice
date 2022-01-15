@@ -55,8 +55,8 @@ inline float Filter::attenuationForFreq(float freq) {
         else return 0.0f;
     }
 }
-inline void Filter::setValues(float cf, float pf, float ph, Waveform wf) {
-    cutoff_freq = cf;
+inline void Filter::setValues(float cd, float pf, float ph, Waveform wf) {
+    cutoff_diff = cd;
     peak_freq = pf;
     peak_height = ph;
     waveform = wf;
