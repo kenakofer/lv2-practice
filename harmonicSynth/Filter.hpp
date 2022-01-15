@@ -3,6 +3,7 @@
 #define FILTER_HPP_
 
 #include "Waveform.hpp"
+#include "whiteband500to1k.hpp"
 
 const float KEY_TRACK_FREQUENCY = 440.0f;
 const int CACHED_WAVE_SAMPLES = 512;
@@ -51,12 +52,14 @@ class Filter
         float attenuationForFreq(float freq);
         void setValues(float cf, float pf, float ph, Waveform wf);
         float valueInWave(float freq, float pos);
+        float getValueInNoise(float freq, float pos);
         void proceed();
 
     private:
         void _recalculate_values();
         void _fillStartCacheWithCurrent();
         void _fillDestCacheWithComputed();
+        void _fillDestCacheWithComputedNoise();
 };
 
 inline Filter::Filter () :
@@ -131,6 +134,8 @@ inline void Filter::_fillStartCacheWithCurrent() {
 }
 
 inline void Filter::_fillDestCacheWithComputed() {
+    if (waveform == WAVEFORM_NOISE) return _fillDestCacheWithComputedNoise();
+
     float value;
     for (int n=0; n<CACHED_WAVE_SAMPLES; n++) {
         value = 0.0f;
@@ -177,6 +182,10 @@ inline void Filter::_fillDestCacheWithComputed() {
     }
 }
 
+inline void Filter::_fillDestCacheWithComputedNoise() {
+    // No action necessary?
+}
+
 inline void Filter::proceed() {
     if (coveredDistance < TOTAL_DISTANCE) {
         coveredDistance++;
@@ -184,6 +193,8 @@ inline void Filter::proceed() {
 }
 
 inline float Filter::valueInWave(float freq, float pos) {
+    if (waveform == WAVEFORM_NOISE) return getValueInNoise(freq, pos);
+
     int i = (int)(CACHED_WAVE_SAMPLES * fmod(pos, 1.0));
     float destProportion = (float)coveredDistance / TOTAL_DISTANCE;
     float startProportion = 1.0f - destProportion;
@@ -196,6 +207,17 @@ inline float Filter::valueInWave(float freq, float pos) {
         return (startCachedValues20[i] * startProportion + destCachedValues20[i] * destProportion);
     // if (freq > PARTIAL_LIMIT_40) return cachedValues30[i];
     return (startCachedValues30[i] * startProportion + destCachedValues30[i] * destProportion);
+}
+
+inline float Filter::getValueInNoise(float freq, float pos) {
+    // Let 15k be the basis for the noise, and scale from there to freq.
+    // Pos is in cycles
+    //
+    float samples_per_cycle = 44100.0f / 750;
+    int index = ((int)(samples_per_cycle * pos)) % WHITEBAND500TO1K_LENGTH;
+    // TODO filtering
+    // std::cout << "Sending white noise sample " << WHITEBAND10K20K_SAMPLES[index] << std::endl;
+    return WHITEBAND500TO1K_SAMPLES[index];
 }
 
 #endif

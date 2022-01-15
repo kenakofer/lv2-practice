@@ -9,7 +9,8 @@ enum Waveform
     WAVEFORM_TRIANGLE   = 1,
     WAVEFORM_SQUARE     = 2,
     WAVEFORM_SAW        = 3,
-    WAVEFORM_NR         = 4
+    WAVEFORM_NOISE      = 4,
+    WAVEFORM_NR         = 5
 };
 
 const int PARTIAL_NR = 30;
