@@ -26,6 +26,7 @@ class Filter
 {
     private:
         float cutoff_diff;
+        float peak_partial;
         float peak_freq;
         float peak_height;
         Waveform waveform;
@@ -64,7 +65,7 @@ class Filter
 
 inline Filter::Filter () :
     peak_height (1.2f),
-    peak_freq (5000.0f),
+    peak_partial (30.0f),
     cutoff_diff (1000.0f),
     coveredDistance (0)
 {
@@ -94,15 +95,16 @@ inline float Filter::attenuationForFreq(float freq) {
         else return 0.0f;
     }
 }
-inline void Filter::setValues(float cd, float pf, float ph, Waveform wf) {
+inline void Filter::setValues(float cd, float pp, float ph, Waveform wf) {
     cutoff_diff = cd;
-    peak_freq = pf;
+    peak_partial = pp;
     peak_height = ph;
     waveform = wf;
     _recalculate_values();
 }
 
 inline void Filter::_recalculate_values() {
+    peak_freq = KEY_TRACK_FREQUENCY * peak_partial;
     cutoff_freq = peak_freq + cutoff_diff;
     if (cutoff_freq < 20.0f) {
         cutoff_freq = 20.0f;

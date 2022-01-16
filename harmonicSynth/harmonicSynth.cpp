@@ -35,7 +35,7 @@ enum ControlPorts
     CONTROL_RELEASE    = 4,
     CONTROL_LEVEL      = 5,
     CONTROL_CUTOFF_DIFF= 6,
-    CONTROL_PEAK_FREQ  = 7,
+    CONTROL_PEAK_PART  = 7,
     CONTROL_PEAK_HEIGHT= 8,
     CONTROL_NR         = 9
 };
@@ -49,7 +49,7 @@ constexpr std::array<std::pair<float, float>, CONTROL_NR> controlLimit =
     {0.001f, 4.0f},
     {0.0f, 1.0f},
     {-10000.0f, 10000.0f},
-    {20.0f, 20000.0f},
+    {0.0f, 30.0f},
     {1.0f, 8.0f},
 }};
 
@@ -192,7 +192,7 @@ void HarmonicSynth::run(const uint32_t sample_count)
         if (*control_ptr[i] != control[i]) {
             control[i] = limit<float> (*control_ptr[i], controlLimit[i].first, controlLimit[i].second);
             if (i == CONTROL_LEVEL) controlLevel.set (control[i], 0.01 * rate);
-            if (i == CONTROL_CUTOFF_DIFF || i == CONTROL_PEAK_FREQ || i == CONTROL_PEAK_HEIGHT || i == CONTROL_WAVEFORM) {
+            if (i == CONTROL_CUTOFF_DIFF || i == CONTROL_PEAK_PART || i == CONTROL_PEAK_HEIGHT || i == CONTROL_WAVEFORM) {
                 refresh_filter = true;
             }
         }
@@ -202,7 +202,7 @@ void HarmonicSynth::run(const uint32_t sample_count)
     if (refresh_filter) {
         filter.setValues(
             control[CONTROL_CUTOFF_DIFF],
-            control[CONTROL_PEAK_FREQ],
+            control[CONTROL_PEAK_PART],
             control[CONTROL_PEAK_HEIGHT],
             static_cast<Waveform> (control[CONTROL_WAVEFORM])
         );
