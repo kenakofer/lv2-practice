@@ -19,39 +19,13 @@
 #include <lv2/core/lv2_util.h>
 #include <lv2/atom/util.h>
 
+#include "Controls.hpp"
 #include "BMap.hpp"
-#include "Limit.hpp"
 #include "LinearFader.hpp"
 #include "Key.hpp"
 #include "LowPassBasic.hpp"
 #include "Filter.hpp"
 
-enum ControlPorts
-{
-    CONTROL_WAVEFORM   = 0,
-    CONTROL_ATTACK     = 1,
-    CONTROL_DECAY      = 2,
-    CONTROL_SUSTAIN    = 3,
-    CONTROL_RELEASE    = 4,
-    CONTROL_LEVEL      = 5,
-    CONTROL_CUTOFF_DIFF= 6,
-    CONTROL_PEAK_PART  = 7,
-    CONTROL_PEAK_HEIGHT= 8,
-    CONTROL_NR         = 9
-};
-
-constexpr std::array<std::pair<float, float>, CONTROL_NR> controlLimit =
-{{
-    {0.0f, 4.0f},
-    {0.001f, 4.0f},
-    {0.001f, 4.0f},
-    {0.0f, 1.0f},
-    {0.001f, 4.0f},
-    {0.0f, 1.0f},
-    {-10000.0f, 10000.0f},
-    {0.0f, 30.0f},
-    {1.0f, 8.0f},
-}};
 
 enum PortGroups
 {
@@ -72,9 +46,6 @@ class HarmonicSynth
 private:
     const LV2_Atom_Sequence* midi_in_ptr;
     float* audio_out_ptr;
-    std::array<const float*, CONTROL_NR> control_ptr;
-    std::array<float, CONTROL_NR> control;
-    LinearFader<float> controlLevel;
     Urids urids;
     double rate;
     double position;
@@ -84,6 +55,7 @@ private:
     BUtilities::BMap<uint8_t, Key, 128> key;
     LowPassBasic low_pass;
     Filter filter;
+    Controls controls;
 
 
 public:
@@ -99,19 +71,15 @@ private:
 HarmonicSynth::HarmonicSynth (const double sample_rate, const LV2_Feature *const *features) :
     midi_in_ptr (nullptr),
     audio_out_ptr (nullptr),
-    control_ptr {nullptr},
     rate (sample_rate),
-    controlLevel (0.0f),
     position (0.0),
     actual_freq (0.0),
     map (nullptr),
     key (),
     low_pass (),
-    filter ()
+    filter (),
+    controls ()
 {
-    control_ptr.fill(nullptr);
-    control.fill(0.0f);
-
     const char* missing = lv2_features_query(
         features,
         LV2_URID__map,
@@ -138,7 +106,7 @@ void HarmonicSynth::connectPort(const uint32_t port, void* data_location)
     default:
         if (port < PORT_CONTROL + CONTROL_NR)
         {
-            control_ptr[port - PORT_CONTROL] = static_cast<const float*>(data_location);
+            controls.connectControlPort(port - PORT_CONTROL, data_location);
         }
         break;
     }
@@ -160,7 +128,7 @@ void HarmonicSynth::play (const uint32_t start, const uint32_t end)
             BUtilities::BMap<uint8_t, Key, 128>::reference k = *it;
 
             if (k.second.isOn()) {
-                audio_out_ptr[i] += k.second.get() * controlLevel.get();
+                audio_out_ptr[i] += k.second.get() * controls.get(CONTROL_LEVEL);
                 // audio_out_ptr[i] = low_pass.transform(audio_out_ptr[i]);
                 k.second.proceed();
                 ++it;
@@ -168,43 +136,26 @@ void HarmonicSynth::play (const uint32_t start, const uint32_t end)
                 it = key.erase(it);
             }
         }
-        controlLevel.proceed();
         filter.proceed();
     }
 }
 
 void HarmonicSynth::run(const uint32_t sample_count)
 {
-    /* check if all ports connected */
-    if (!(audio_out_ptr && midi_in_ptr)) return;
-
-    for (int i=0; i<CONTROL_NR; ++i) {
-        if (!control_ptr[i]) {
-            // return;
-            throw std::invalid_argument ("Not all controls connected");
-        }
-
+    if (!(audio_out_ptr && midi_in_ptr)) {
+        throw std::invalid_argument ("Not all ports connected");
+    }
+    if (!controls.isEveryControlConnected()) {
+        throw std::invalid_argument ("Not all controls connected");
     }
 
-    /* copy and validate control port values */
-    bool refresh_filter = false;
-    for (int i=0; i<CONTROL_NR; ++i) {
-        if (*control_ptr[i] != control[i]) {
-            control[i] = limit<float> (*control_ptr[i], controlLimit[i].first, controlLimit[i].second);
-            if (i == CONTROL_LEVEL) controlLevel.set (control[i], 0.01 * rate);
-            if (i == CONTROL_CUTOFF_DIFF || i == CONTROL_PEAK_PART || i == CONTROL_PEAK_HEIGHT || i == CONTROL_WAVEFORM) {
-                refresh_filter = true;
-            }
-        }
-    }
-
-    /* filter refreshing and control moving */
-    if (refresh_filter) {
+    if (controls.updateValues()) {
+        /* filter refreshing and control moving */
         filter.setValues(
-            control[CONTROL_CUTOFF_DIFF],
-            control[CONTROL_PEAK_PART],
-            control[CONTROL_PEAK_HEIGHT],
-            static_cast<Waveform> (control[CONTROL_WAVEFORM])
+            controls.get(CONTROL_CUTOFF_DIFF),
+            controls.get(CONTROL_PEAK_PART),
+            controls.get(CONTROL_PEAK_HEIGHT),
+            static_cast<Waveform> (controls.get(CONTROL_WAVEFORM))
         );
     }
 
@@ -224,14 +175,14 @@ void HarmonicSynth::run(const uint32_t sample_count)
             switch (typ) {
                 case LV2_MIDI_MSG_NOTE_ON:
                     key[msg[1] & 0x7f].press(
-                        static_cast<Waveform> (control[CONTROL_WAVEFORM]),
+                        static_cast<Waveform> (controls.get(CONTROL_WAVEFORM)),
                         msg[1], /* note */
                         msg[2], /* velocity */
                         {
-                            control[CONTROL_ATTACK],
-                            control[CONTROL_DECAY],
-                            control[CONTROL_SUSTAIN],
-                            control[CONTROL_RELEASE]
+                            controls.get(CONTROL_ATTACK),
+                            controls.get(CONTROL_DECAY),
+                            controls.get(CONTROL_SUSTAIN),
+                            controls.get(CONTROL_RELEASE)
                         },
                         &filter
                     );
