@@ -128,6 +128,10 @@ void HarmonicSynth::play (const uint32_t start, const uint32_t end)
             BUtilities::BMap<uint8_t, Key, 128>::reference k = *it;
 
             if (k.second.isOn()) {
+
+                controls.get(CONTROL_LEVEL);
+                k.second.get();
+
                 audio_out_ptr[i] += k.second.get() * controls.get(CONTROL_LEVEL);
                 // audio_out_ptr[i] = low_pass.transform(audio_out_ptr[i]);
                 k.second.proceed();
@@ -152,10 +156,7 @@ void HarmonicSynth::run(const uint32_t sample_count)
     if (controls.updateValues()) {
         /* filter refreshing and control moving */
         filter.setValues(
-            controls.get(CONTROL_CUTOFF_DIFF),
-            controls.get(CONTROL_PEAK_PART),
-            controls.get(CONTROL_PEAK_HEIGHT),
-            static_cast<Waveform> (controls.get(CONTROL_WAVEFORM))
+            &controls
         );
     }
 
@@ -175,15 +176,9 @@ void HarmonicSynth::run(const uint32_t sample_count)
             switch (typ) {
                 case LV2_MIDI_MSG_NOTE_ON:
                     key[msg[1] & 0x7f].press(
-                        static_cast<Waveform> (controls.get(CONTROL_WAVEFORM)),
                         msg[1], /* note */
                         msg[2], /* velocity */
-                        {
-                            controls.get(CONTROL_ATTACK),
-                            controls.get(CONTROL_DECAY),
-                            controls.get(CONTROL_SUSTAIN),
-                            controls.get(CONTROL_RELEASE)
-                        },
+                        &controls,
                         &filter
                     );
                     break;

@@ -30,6 +30,7 @@ class Filter
         float peak_freq;
         float peak_height;
         Waveform waveform;
+        Controls* controls;
 
         float cutoff_freq;
         float flat_freq;
@@ -51,7 +52,7 @@ class Filter
     public:
         Filter();
         float attenuationForFreq(float freq);
-        void setValues(float cf, float pf, float ph, Waveform wf);
+        void setValues(Controls *c);
         float valueInWave(float freq, float pos);
         float getValueInNoise(float freq, float pos);
         void proceed();
@@ -67,7 +68,9 @@ inline Filter::Filter () :
     peak_height (1.2f),
     peak_partial (30.0f),
     cutoff_diff (1000.0f),
-    coveredDistance (0)
+    coveredDistance (0),
+    waveform (WAVEFORM_SINE),
+    controls (nullptr)
 {
     startCachedValues10.fill(0.0f);
     startCachedValues20.fill(0.0f);
@@ -95,11 +98,13 @@ inline float Filter::attenuationForFreq(float freq) {
         else return 0.0f;
     }
 }
-inline void Filter::setValues(float cd, float pp, float ph, Waveform wf) {
-    cutoff_diff = cd;
-    peak_partial = pp;
-    peak_height = ph;
-    waveform = wf;
+inline void Filter::setValues(Controls *c) {
+    controls = c;
+    cutoff_diff = (*controls).get(CONTROL_CUTOFF_DIFF);
+    peak_partial = (*controls).get(CONTROL_PEAK_PART);
+
+    peak_height = (*controls).get(CONTROL_PEAK_HEIGHT);
+    waveform = static_cast<Waveform>((*controls).get(CONTROL_WAVEFORM));
     _recalculate_values();
 }
 
@@ -218,7 +223,6 @@ inline float Filter::getValueInNoise(float freq, float pos) {
     float i=0.0f;
     while (i < 20) {
         if ((freq * (i+1)) > (44100 / 2)) {
-            // std::cout << "Breaking at i = " << i << std::endl;
             break;
         }
         int index = ((int)(samples_per_cycle * pos * (i+1))) % WHITEBAND500TO1K_LENGTH;

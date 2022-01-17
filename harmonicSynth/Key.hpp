@@ -8,10 +8,10 @@
 #include <array>
 #include "LinearFader.hpp"
 #include "Waveform.hpp"
-#include "Envelope.hpp"
 #include "KeyStatus.hpp"
 #include "Sine.hpp"
 #include "Filter.hpp"
+#include "Controls.hpp"
 
 class Key
 {
@@ -20,7 +20,6 @@ private:
     Waveform waveform;
     uint8_t note;
     uint8_t velocity;
-    Envelope envelope;
     double rate;
     double position;
     float start_level;
@@ -29,12 +28,13 @@ private:
     LinearFader<float> fader;
     std::minstd_rand rnd;
     std::uniform_real_distribution<float> dist;
+    Controls* controls;
     Filter* filter;
 
 public:
     Key ();
     Key (const double rt);
-    void press (const Waveform wf, const uint8_t nt, const uint8_t vel, const Envelope env, Filter *f);
+    void press (const uint8_t nt, const uint8_t vel, Controls *c, Filter *f);
     void release ();
     void release (const uint8_t nt, const uint8_t vel);
     void off ();
@@ -62,7 +62,6 @@ inline Key::Key (const double rt) :
     waveform (WAVEFORM_SINE),
     note (0),
     velocity (0),
-    envelope {0.0, 0.0, 0.0f, 0.0},
     rate (rt),
     position (0.0),
     start_level (0.0f),
@@ -76,16 +75,16 @@ inline Key::Key (const double rt) :
 
 }
 
-inline void Key::press (const Waveform wf, const uint8_t nt, const uint8_t vel, const Envelope env, Filter *f)
+inline void Key::press (const uint8_t nt, const uint8_t vel, Controls *c, Filter *f)
 {
+
+    controls = c;
     start_level = adsr();
     note = nt;
     velocity = vel;
-    envelope = env;
     freq = pow (2.0, (static_cast<double> (note) - 69.0) / 12.0) * 440.0;
     time = 0.0;
     fader.set (1.0f, 0.0);
-    waveform = wf;
     status = KEY_PRESSED;
     filter = f;
 
@@ -120,23 +119,28 @@ inline void Key::mute ()
 
 inline float Key::adsr ()
 {
+    float attack = (*controls).get(CONTROL_ATTACK);
+    float decay = (*controls).get(CONTROL_DECAY);
+    float sustain = (*controls).get(CONTROL_SUSTAIN);
+    float release = (*controls).get(CONTROL_RELEASE);
+
     switch (status)
     {
     case KEY_PRESSED:
-        if (time < envelope.attack)
+        if (time < attack)
         {
-            return start_level + (1.0f - start_level) * time /envelope.attack;
+            return start_level + (1.0f - start_level) * time /attack;
         }
 
-        if (time < envelope.attack + envelope.decay)
+        if (time < attack + decay)
         {
-            return 1.0f + (envelope.sustain - 1.0f) * (time - envelope.attack) / envelope.decay;
+            return 1.0f + (sustain - 1.0f) * (time - attack) / decay;
         }
 
-        return envelope.sustain;
+        return sustain;
 
     case KEY_RELEASED:
-        return start_level - start_level * time /envelope.release;
+        return start_level - start_level * time / release;
 
     default:
         return 0.0f;
@@ -153,7 +157,7 @@ inline float Key::synth()
 {
     const float p = fmod (position, 1.0);
 
-    switch (waveform)
+    switch (static_cast<Waveform> ((*controls).get(CONTROL_WAVEFORM)))
     {
         case WAVEFORM_SINE:     return sin (2.0 * M_PI * position);
         case WAVEFORM_TRIANGLE: return (p < 0.25f ? 4.0f * p : (p < 0.75f ? 1.0f - 4.0 * (p - 0.25f) : -1.0f + 4.0f * (p - 0.75f)));
@@ -176,7 +180,7 @@ inline void Key::proceed ()
 {
     time += 1.0 / rate;
     position += freq / rate;
-    if ((status == KEY_RELEASED) && (time >= envelope.release)) off();
+    if ((status == KEY_RELEASED) && (time >= (*controls).get(CONTROL_RELEASE))) off();
 }
 
 inline bool Key::isOn () {
