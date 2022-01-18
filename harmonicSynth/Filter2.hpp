@@ -25,6 +25,7 @@ class Filter
 {
 private:
     Controls* controls;
+    Waveform waveform;
 
     std::array<float, CACHED_WAVE_SAMPLES> cachedValues01;
     std::array<float, CACHED_WAVE_SAMPLES> cachedValues06;
@@ -50,10 +51,7 @@ public:
     }
 
     inline void fillCache() {
-        Waveform waveform = static_cast<Waveform>((*controls).get(CONTROL_WAVEFORM));
-
-        // TODO
-        // if (waveform == WAVEFORM_NOISE) return _fillDestCacheWithComputedNoise();
+        waveform = static_cast<Waveform>((*controls).get(CONTROL_WAVEFORM));
 
         float value;
         for (int n=0; n<CACHED_WAVE_SAMPLES; n++) {
@@ -104,8 +102,7 @@ public:
     }
 
     inline float valueInWave(float freq, float pos, float partials) {
-        // TODO
-        // if (waveform == WAVEFORM_NOISE) return getValueInNoise(freq, pos);
+        if (waveform == WAVEFORM_NOISE) return valueInNoise(freq, pos, partials);
 
         int i = (int)(CACHED_WAVE_SAMPLES * fmod(pos, 1.0));
 
@@ -136,22 +133,26 @@ public:
         }
     }
 
-    // inline float getValueInNoise(float freq, float pos) {
-    //     float samples_per_cycle = 44100.0f / 750;
+    inline float valueInNoise(float freq, float pos, float partials) {
+        float samples_per_cycle = 44100.0f / 750;
 
-    //     float value = 0.0f;
-    //     float i=0.0f;
-    //     while (i < 20) {
-    //         if ((freq * (i+1)) > (44100 / 2)) {
-    //             break;
-    //         }
-    //         int index = ((int)(samples_per_cycle * pos * (i+1))) % WHITEBAND500TO1K_LENGTH;
-    //         value += WHITEBAND500TO1K_SAMPLES[index] * attenuationForFreq(KEY_TRACK_FREQUENCY * (i+1));
-    //         if (i==0.0f) i += .85f;
-    //         else i += .95;
-    //     }
-    //     return value;
-    // }
+        float value = 0.0f;
+        float i=0.0f;
+        while (i < 20) {
+            if ((freq * (i+1)) > (44100 / 2)) break;
+            if (i >= partials) break;
+
+            int index = ((int)(samples_per_cycle * pos * (i+1))) % WHITEBAND500TO1K_LENGTH;
+            float factor = 1.0;
+            if ((partials - 1 < (i-1)) && ((i-1) < partials)) {
+                factor = 1.0f - (partials - (i-1));
+            }
+            value += WHITEBAND500TO1K_SAMPLES[index] * factor;
+            if (i==0.0f) i += .85f;
+            else i += .95;
+        }
+        return value;
+    }
 
 };
 
