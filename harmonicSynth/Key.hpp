@@ -91,7 +91,6 @@ inline void Key::press (const uint8_t nt, const uint8_t vel, Controls *c, Filter
     time = 0.0;
     status = KEY_PRESSED;
     filter = f;
-
     // std::cout << "Starting note with freq: " << freq << std::endl;
 }
 
@@ -166,6 +165,7 @@ inline float Key::adsr(int whichEnvelope)
         return sustain;
 
     case KEY_RELEASED:
+        if (time > release) return 0.0f;
         return start_level - start_level * time / release;
 
     default:
@@ -191,15 +191,21 @@ inline float Key::synthPartials()
 inline float Key::synth2()
 {
     const float p = fmod (position2, 1.0);
+    float value = 0.0f;
 
     switch (static_cast<Waveform> ((*controls).get(CONTROL_WAVEFORM_2)))
     {
-        case WAVEFORM_SINE:     return sin (2.0 * M_PI * p);
-        case WAVEFORM_TRIANGLE: return (p < 0.25f ? 4.0f * p : (p < 0.75f ? 1.0f - 4.0 * (p - 0.25f) : -1.0f + 4.0f * (p - 0.75f)));
-        case WAVEFORM_SQUARE:   return (p < 0.5f ? 1.0f : -1.0f);
-        case WAVEFORM_SAW:      return 2.0f * p - 1.0f;
-        default:                return 0.0f;
+        case WAVEFORM_SINE:     value = sin (2.0 * M_PI * p); break;
+        case WAVEFORM_TRIANGLE: value = (p < 0.25f ? 4.0f * p : (p < 0.75f ? 1.0f - 4.0 * (p - 0.25f) : -1.0f + 4.0f * (p - 0.75f))); break;
+        case WAVEFORM_SQUARE:   value = (p < 0.5f ? 1.0f : -1.0f); break;
+        case WAVEFORM_SAW:      value = 2.0f * p - 1.0f; break;
+        default:                value = 0.0f; break;
     }
+    if ((*controls).get(CONTROL_ENV_MODE_1) == ENV_LEVEL_2) value *= adsr(1);
+    if ((*controls).get(CONTROL_ENV_MODE_2) == ENV_LEVEL_2) value *= adsr(2);
+
+    value *= (*controls).get(CONTROL_LEVEL_2);
+    return value;
 }
 
 inline float Key::get ()
@@ -215,8 +221,6 @@ inline float Key::get ()
 
     if ((*controls).get(CONTROL_WAVEFORM_2_MODE) == OSC_ADD) {
         float value2 = synth2();
-        value2 *= adsr(2);
-        value2 *= (*controls).get(CONTROL_LEVEL_2);
         value += value2;
     }
 
@@ -239,13 +243,20 @@ inline void Key::proceed ()
     if ((*controls).get(CONTROL_ENV_MODE_2) == ENV_PITCH_1) {
         modfreq *= pow (2.0, adsr(2) * 12 / 12.0); // Scale by 12 so it's an octave, TODO make more flexible
     }
+    if ((*controls).get(CONTROL_WAVEFORM_2_MODE) == OSC_FM_1) {
+        modfreq *= 1 + synth2();
+    }
     // Move Osc 1 forward correctly
     position += modfreq / rate;
 
     // Move Osc 2 forward correctly
     position2 += freq2 / rate;
 
-    if ((status == KEY_RELEASED) && (time >= (*controls).get(CONTROL_RELEASE))) off();
+    if ((status == KEY_RELEASED) &&
+            (time >= (*controls).get(CONTROL_RELEASE)) &&
+            (time >= (*controls).get(CONTROL_RELEASE_2))) {
+        off();
+    }
 }
 
 inline bool Key::isOn () {
