@@ -182,7 +182,7 @@ inline float Key::synthPartials()
         peak_part += 4 * adsr(1);
     }
     if ((*controls).get(CONTROL_ENV_MODE_2) == ENV_CUTOFF_1) {
-        peak_part += 4 * adsr(2);
+        peak_part += 4 * adsr(2) * (*controls).get(CONTROL_ENV_AMT_2);
     }
     return (*filter).valueInWave(freq, position, peak_part);
 
@@ -238,10 +238,10 @@ inline void Key::proceed ()
     float modfreq = freq;
     modfreq *= pow (2.0, (*controls).get(CONTROL_PITCH) / 12.0);
     if ((*controls).get(CONTROL_ENV_MODE_1) == ENV_PITCH_1) {
-        modfreq *= pow (2.0, adsr(1) * 12 / 12.0); // Scale by 12 so it's an octave, TODO make more flexible
+        modfreq *= pow (2.0, adsr(1) * 12 / 12.0);
     }
     if ((*controls).get(CONTROL_ENV_MODE_2) == ENV_PITCH_1) {
-        modfreq *= pow (2.0, adsr(2) * 12 / 12.0); // Scale by 12 so it's an octave, TODO make more flexible
+        modfreq *= pow (2.0, adsr(2) * (*controls).get(CONTROL_ENV_AMT_2) * 4 / 12.0); // Scale by 4 so it covers more
     }
     if ((*controls).get(CONTROL_WAVEFORM_2_MODE) == OSC_FM_1) {
         modfreq *= 1 + synth2();

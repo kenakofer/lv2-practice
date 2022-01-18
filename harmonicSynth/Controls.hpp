@@ -23,16 +23,17 @@ enum ControlPorts
     CONTROL_PEAK_HEIGHT= 10,
 
     CONTROL_ENV_MODE_2 = 11,
-    CONTROL_ATTACK_2   = 12,
-    CONTROL_DECAY_2    = 13,
-    CONTROL_SUSTAIN_2  = 14,
-    CONTROL_RELEASE_2  = 15,
+    CONTROL_ENV_AMT_2  = 12,
+    CONTROL_ATTACK_2   = 13,
+    CONTROL_DECAY_2    = 14,
+    CONTROL_SUSTAIN_2  = 15,
+    CONTROL_RELEASE_2  = 16,
 
-    CONTROL_WAVEFORM_2_MODE = 16,
-    CONTROL_WAVEFORM_2 = 17,
-    CONTROL_LEVEL_2    = 18,
-    CONTROL_PITCH_2    = 19,
-    CONTROL_NR         = 20
+    CONTROL_WAVEFORM_2_MODE = 17,
+    CONTROL_WAVEFORM_2 = 18,
+    CONTROL_LEVEL_2    = 19,
+    CONTROL_PITCH_2    = 20,
+    CONTROL_NR         = 21
 };
 
 constexpr std::array<std::pair<float, float>, CONTROL_NR> controlLimit =
@@ -51,6 +52,7 @@ constexpr std::array<std::pair<float, float>, CONTROL_NR> controlLimit =
     {1.0f, 8.0f},           // PEAK_HEIGHT
 
     {0.0f, 3.0f},           // ENV MODE 2
+    {0.0f, 10.0f},          // ENV_AMT_2
     {0.001f, 4.0f},         // ATTACK
     {0.001f, 4.0f},         // DECAY
     {0.0f, 1.0f},           // SUSTAIN
