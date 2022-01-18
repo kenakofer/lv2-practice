@@ -24,7 +24,7 @@
 #include "LinearFader.hpp"
 #include "Key.hpp"
 #include "LowPassBasic.hpp"
-#include "Filter.hpp"
+#include "Filter2.hpp"
 
 
 enum PortGroups
@@ -118,6 +118,9 @@ void HarmonicSynth::activate()
     position = 0.0;
     actual_freq = 440.0;
     actual_level = 0.1;
+    filter.recalculateValues(
+        &controls
+    );
 }
 
 void HarmonicSynth::play (const uint32_t start, const uint32_t end)
@@ -141,7 +144,7 @@ void HarmonicSynth::play (const uint32_t start, const uint32_t end)
                 it = key.erase(it);
             }
         }
-        filter.proceed();
+        // filter.proceed();
         // std::cout << &controls << std::endl;
         // This would be for mono
         // controls.proceed();
@@ -159,7 +162,7 @@ void HarmonicSynth::run(const uint32_t sample_count)
 
     if (controls.updateValues()) {
         /* filter refreshing and control moving */
-        filter.setValues(
+        filter.recalculateValues(
             &controls
         );
     }

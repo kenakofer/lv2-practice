@@ -10,7 +10,7 @@
 #include "Waveform.hpp"
 #include "KeyStatus.hpp"
 #include "Sine.hpp"
-#include "Filter.hpp"
+#include "Filter2.hpp"
 #include "Controls.hpp"
 
 class Key
@@ -182,7 +182,7 @@ inline float Key::synthPartials()
     if ((*controls).get(CONTROL_ENV_MODE_2) == ENV_CUTOFF_1) {
         peak_part += 4 * adsr(2);
     }
-    return (*filter).valueInWaveNoCache(freq, position, peak_part);
+    return (*filter).valueInWave(freq, position, peak_part);
 
 }
 

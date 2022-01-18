@@ -118,7 +118,7 @@ class Controls {
                 if (*control_ptr[i] != control[i]) {
                     control[i] = limit<float> (*control_ptr[i], controlLimit[i].first, controlLimit[i].second);
                     // if (i == CONTROL_LEVEL) controlLevel.set (control[i], 0.01 * rate);
-                    if (i == CONTROL_CUTOFF_DIFF || i == CONTROL_PEAK_PART || i == CONTROL_PEAK_HEIGHT || i == CONTROL_WAVEFORM) {
+                    if (i == CONTROL_WAVEFORM) {
                         updated = true;
                     }
                 }
