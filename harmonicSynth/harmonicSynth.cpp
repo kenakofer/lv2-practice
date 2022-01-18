@@ -132,11 +132,7 @@ void HarmonicSynth::play (const uint32_t start, const uint32_t end)
             BUtilities::BMap<uint8_t, Key, 128>::reference k = *it;
 
             if (k.second.isOn()) {
-
-                controls.get(CONTROL_LEVEL);
-                k.second.get();
-
-                audio_out_ptr[i] += k.second.get() * controls.get(CONTROL_LEVEL);
+                audio_out_ptr[i] += k.second.get();
                 // audio_out_ptr[i] = low_pass.transform(audio_out_ptr[i]);
                 k.second.proceed();
                 ++it;

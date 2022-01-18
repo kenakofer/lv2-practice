@@ -6,7 +6,6 @@
 #include <random>
 #include <ctime>
 #include <array>
-#include "LinearFader.hpp"
 #include "Waveform.hpp"
 #include "KeyStatus.hpp"
 #include "Sine.hpp"
@@ -22,11 +21,12 @@ private:
     uint8_t velocity;
     double rate;
     double position;
+    double position2;
     float start_level_1;
     float start_level_2;
     double freq;
+    double freq2;
     double time;
-    LinearFader<float> fader;
     std::minstd_rand rnd;
     std::uniform_real_distribution<float> dist;
     Controls* controls;
@@ -50,6 +50,7 @@ private:
     float synthPartials ();
     void setCachedValue(double pos, float val);
     float getCachedValue(double pos);
+    float synth2();
 };
 
 inline Key::Key () :
@@ -65,11 +66,11 @@ inline Key::Key (const double rt) :
     velocity (0),
     rate (rt),
     position (0.0),
+    position2 (0.0),
     start_level_1 (0.0f),
     start_level_2 (0.0f),
     freq (pow (2.0, (static_cast<double> (note) - 69.0) / 12.0) * 440.0),
     time (0.0),
-    fader (1.0f),
     rnd (std::time (0)),
     dist (-1.0f, 1.0f),
     filter ()
@@ -86,8 +87,8 @@ inline void Key::press (const uint8_t nt, const uint8_t vel, Controls *c, Filter
     note = nt;
     velocity = vel;
     freq = pow (2.0, (static_cast<double> (note) - 69.0) / 12.0) * 440.0;
+    freq2 = pow (2.0, (static_cast<double> (note) - 69.0 + (*controls).get(CONTROL_PITCH_2)) / 12.0) * 440.0;
     time = 0.0;
-    fader.set (1.0f, 0.0);
     status = KEY_PRESSED;
     filter = f;
 
@@ -113,12 +114,13 @@ inline void Key::release (const uint8_t nt, const uint8_t vel)
 inline void Key::off ()
 {
     position = 0.0;
+    position2 = 0.0;
     status = KEY_OFF;
 }
 
 inline void Key::mute ()
 {
-    fader.set (0.0f, 0.01 * rate);
+    velocity = 0;
 }
 
 inline float Key::adsr(int whichEnvelope)
@@ -186,13 +188,13 @@ inline float Key::synthPartials()
 
 }
 
-inline float Key::synth()
+inline float Key::synth2()
 {
-    const float p = fmod (position, 1.0);
+    const float p = fmod (position2, 1.0);
 
-    switch (static_cast<Waveform> ((*controls).get(CONTROL_WAVEFORM)))
+    switch (static_cast<Waveform> ((*controls).get(CONTROL_WAVEFORM_2)))
     {
-        case WAVEFORM_SINE:     return sin (2.0 * M_PI * position);
+        case WAVEFORM_SINE:     return sin (2.0 * M_PI * p);
         case WAVEFORM_TRIANGLE: return (p < 0.25f ? 4.0f * p : (p < 0.75f ? 1.0f - 4.0 * (p - 0.25f) : -1.0f + 4.0f * (p - 0.75f)));
         case WAVEFORM_SQUARE:   return (p < 0.5f ? 1.0f : -1.0f);
         case WAVEFORM_SAW:      return 2.0f * p - 1.0f;
@@ -203,8 +205,7 @@ inline float Key::synth()
 inline float Key::get ()
 {
     float value = synthPartials() *
-                    (static_cast<float> (velocity) / 127.0f) *
-                    fader.get();
+                    (*controls).get(CONTROL_LEVEL);
     if ((*controls).get(CONTROL_ENV_MODE_1) == ENV_LEVEL_1) {
         value *= adsr(1);
     }
@@ -212,11 +213,24 @@ inline float Key::get ()
         value *= adsr(2);
     }
 
+    if ((*controls).get(CONTROL_WAVEFORM_2_MODE) == OSC_ADD) {
+        float value2 = synth2();
+        value2 *= adsr(2);
+        value2 *= (*controls).get(CONTROL_LEVEL_2);
+        value += value2;
+    }
+
+    // Velocity adjustment
+    value *= static_cast<float> (velocity) / 127.0f;
+
     return value;
 }
 
 inline void Key::proceed ()
 {
+    time += 1.0 / rate;
+
+    // Find oscillator 1's freq:
     float modfreq = freq;
     modfreq *= pow (2.0, (*controls).get(CONTROL_PITCH) / 12.0);
     if ((*controls).get(CONTROL_ENV_MODE_1) == ENV_PITCH_1) {
@@ -225,8 +239,12 @@ inline void Key::proceed ()
     if ((*controls).get(CONTROL_ENV_MODE_2) == ENV_PITCH_1) {
         modfreq *= pow (2.0, adsr(2) * 12 / 12.0); // Scale by 12 so it's an octave, TODO make more flexible
     }
-    time += 1.0 / rate;
+    // Move Osc 1 forward correctly
     position += modfreq / rate;
+
+    // Move Osc 2 forward correctly
+    position2 += freq2 / rate;
+
     if ((status == KEY_RELEASED) && (time >= (*controls).get(CONTROL_RELEASE))) off();
 }
 
