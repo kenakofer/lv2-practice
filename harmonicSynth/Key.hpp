@@ -173,7 +173,16 @@ inline float Key::adsr(int whichEnvelope)
 
 inline float Key::synthPartials()
 {
-    return (*filter).valueInWave(freq, position);
+    // return (*filter).valueInWave(freq, position);
+
+    float peak_part = (*controls).get(CONTROL_PEAK_PART);
+    if ((*controls).get(CONTROL_ENV_MODE_1) == ENV_CUTOFF_1) {
+        peak_part += 4 * adsr(1);
+    }
+    if ((*controls).get(CONTROL_ENV_MODE_2) == ENV_CUTOFF_1) {
+        peak_part += 4 * adsr(2);
+    }
+    return (*filter).valueInWaveNoCache(freq, position, peak_part);
 
 }
 
@@ -208,8 +217,16 @@ inline float Key::get ()
 
 inline void Key::proceed ()
 {
+    float modfreq = freq;
+    modfreq *= pow (2.0, (*controls).get(CONTROL_PITCH) / 12.0);
+    if ((*controls).get(CONTROL_ENV_MODE_1) == ENV_PITCH_1) {
+        modfreq *= pow (2.0, adsr(1) * 12 / 12.0); // Scale by 12 so it's an octave, TODO make more flexible
+    }
+    if ((*controls).get(CONTROL_ENV_MODE_2) == ENV_PITCH_1) {
+        modfreq *= pow (2.0, adsr(2) * 12 / 12.0); // Scale by 12 so it's an octave, TODO make more flexible
+    }
     time += 1.0 / rate;
-    position += freq / rate;
+    position += modfreq / rate;
     if ((status == KEY_RELEASED) && (time >= (*controls).get(CONTROL_RELEASE))) off();
 }
 

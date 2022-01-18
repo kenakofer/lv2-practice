@@ -52,8 +52,10 @@ class Filter
     public:
         Filter();
         float attenuationForFreq(float freq);
+        float attenuationForFreq(float freq, float pf);
         void setValues(Controls *c);
         float valueInWave(float freq, float pos);
+        float valueInWaveNoCache(float freq, float pos, float peak_partial);
         float getValueInNoise(float freq, float pos);
         void proceed();
 
@@ -84,17 +86,23 @@ inline Filter::Filter () :
 }
 
 inline float Filter::attenuationForFreq(float freq) {
-    if (slope > 0) {
+    return attenuationForFreq(freq, peak_freq);
+}
+inline float Filter::attenuationForFreq(float freq, float pf) {
+    float cf = pf + cutoff_diff;
+    float s = peak_height / (pf - cf);
+    float ff = pf + (peak_height - 1.0f) / s;
+    if (s > 0) {
         // Hi pass
-        if (freq < cutoff_freq) return 0.0f;
-        if (freq < peak_freq) return slope * (freq - cutoff_freq);
-        if (freq < flat_freq) return peak_height - (slope * (freq - peak_freq));
+        if (freq < cf) return 0.0f;
+        if (freq < pf) return s * (freq - cf);
+        if (freq < ff) return peak_height - (s * (freq - pf));
         else return 1.0f;
     } else {
         // Lo pass
-        if (freq < flat_freq) return 1.0f;
-        if (freq < peak_freq) return peak_height - (slope * (freq - peak_freq));
-        if (freq < cutoff_freq) return slope * (freq - cutoff_freq);
+        if (freq < ff) return 1.0f;
+        if (freq < pf) return peak_height - (s * (freq - pf));
+        if (freq < cf) return s * (freq - cf);
         else return 0.0f;
     }
 }
@@ -214,6 +222,19 @@ inline float Filter::valueInWave(float freq, float pos) {
         return (startCachedValues20[i] * startProportion + destCachedValues20[i] * destProportion);
     // if (freq > PARTIAL_LIMIT_40) return cachedValues30[i];
     return (startCachedValues30[i] * startProportion + destCachedValues30[i] * destProportion);
+}
+
+inline float Filter::valueInWaveNoCache(float freq, float pos, float peak_part) {
+    float pf = KEY_TRACK_FREQUENCY * peak_part;
+    float value = 0.0f;
+    for (int i=0; i<20; i++) {
+        if (PARTIAL_AMPLITUDES[waveform][i] == 0.0f) continue;
+        if ((freq * (i + 1)) > 20000) break;
+        value += PARTIAL_AMPLITUDES[waveform][i] *
+                attenuationForFreq(KEY_TRACK_FREQUENCY * (i+1), pf) *
+                sin(2.0 * M_PI * (i+1) * pos);
+    }
+    return value;
 }
 
 inline float Filter::getValueInNoise(float freq, float pos) {
