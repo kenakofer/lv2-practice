@@ -68,7 +68,7 @@ enum OscillatorModes // Only for Osc 2 for now?
 {
     OSC_ADD,
     OSC_FM_1,
-    OSC_LEVEL_1,
+    OSC_AM_1,
     OSC_CUTOFF_1
 };
 enum EnvelopeModes

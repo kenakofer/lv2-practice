@@ -218,6 +218,9 @@ inline float Key::get ()
     if ((*controls).get(CONTROL_ENV_MODE_2) == ENV_LEVEL_1) {
         value *= adsr(2);
     }
+    if ((*controls).get(CONTROL_WAVEFORM_2_MODE) == OSC_AM_1) {
+        value *= 1 + synth2();
+    }
 
     if ((*controls).get(CONTROL_WAVEFORM_2_MODE) == OSC_ADD) {
         float value2 = synth2();
