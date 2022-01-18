@@ -184,6 +184,9 @@ inline float Key::synthPartials()
     if ((*controls).get(CONTROL_ENV_MODE_2) == ENV_CUTOFF_1) {
         peak_part += 4 * adsr(2) * (*controls).get(CONTROL_ENV_AMT_2);
     }
+    if ((*controls).get(CONTROL_WAVEFORM_2_MODE) == OSC_CUTOFF_1) {
+        peak_part += 4 * synth2();
+    }
     return (*filter).valueInWave(freq, position, peak_part);
 
 }
