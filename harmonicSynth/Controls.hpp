@@ -9,54 +9,74 @@
 
 enum ControlPorts
 {
-    CONTROL_WAVEFORM   = 0,
+    CONTROL_ENV_MODE_1 = 0,
     CONTROL_ATTACK     = 1,
     CONTROL_DECAY      = 2,
     CONTROL_SUSTAIN    = 3,
     CONTROL_RELEASE    = 4,
-    CONTROL_LEVEL      = 5,
-    CONTROL_CUTOFF_DIFF= 6,
-    CONTROL_PEAK_PART  = 7,
-    CONTROL_PEAK_HEIGHT= 8,
-    CONTROL_WAVEFORM_2 = 9,
-    CONTROL_WAVEFORM_2_MODE = 10,
-    CONTROL_WAVEFORM_2_TARGET = 11,
-    CONTROL_LEVEL_2    = 12,
-    CONTROL_PITCH_2    = 13,
-    CONTROL_ATTACK_2   = 14,
-    CONTROL_DECAY_2    = 15,
-    CONTROL_SUSTAIN_2  = 16,
-    CONTROL_RELEASE_2  = 17,
-    CONTROL_NR         = 18
-};
 
-enum Targets
-{
-    LEVEL_1,
-    PEAK_PARTIAL_1
+    CONTROL_WAVEFORM   = 5,
+    CONTROL_LEVEL      = 6,
+    CONTROL_PITCH      = 7,
+    CONTROL_CUTOFF_DIFF= 8,
+    CONTROL_PEAK_PART  = 9,
+    CONTROL_PEAK_HEIGHT= 10,
+
+    CONTROL_ENV_MODE_2 = 11,
+    CONTROL_ATTACK_2   = 12,
+    CONTROL_DECAY_2    = 13,
+    CONTROL_SUSTAIN_2  = 14,
+    CONTROL_RELEASE_2  = 15,
+
+    CONTROL_WAVEFORM_2_MODE = 16,
+    CONTROL_WAVEFORM_2 = 17,
+    CONTROL_LEVEL_2    = 18,
+    CONTROL_PITCH_2    = 19,
+    CONTROL_NR         = 20
 };
 
 constexpr std::array<std::pair<float, float>, CONTROL_NR> controlLimit =
 {{
-    {0.0f, 4.0f},
-    {0.001f, 4.0f},
-    {0.001f, 4.0f},
-    {0.0f, 1.0f},
-    {0.001f, 4.0f},
-    {0.0f, 1.0f},
-    {-10000.0f, 10000.0f},
-    {0.0f, 30.0f},
-    {1.0f, 8.0f},
-    {0.0f, 4.0f},
-    {0.0f, 1.0f},
-    {0.0f, 1.0f},
-    {0.0f, 1.0f},
-    {0.0f, 127.0f},
-    {0.001f, 4.0f},
-    {0.001f, 4.0f},
-    {0.001f, 1.0f},
-    {0.001f, 4.0f}
+    {0.0f, 3.0f},           // ENV_MODE_1
+    {0.001f, 4.0f},         // ATTACK
+    {0.001f, 4.0f},         // DECAY
+    {0.0f, 1.0f},           // SUSTAIN
+    {0.001f, 4.0f},         // RELEASE
+
+    {0.0f, 4.0f},           // WAVEFORM
+    {0.0f, 1.0f},           // LEVEL
+    {-24.0f, 24.0f},        // PITCH
+    {-10000.0f, 10000.0f},  // CUTOFF DIFF
+    {0.0f, 30.0f},          // PEAK_PART
+    {1.0f, 8.0f},           // PEAK_HEIGHT
+
+    {0.0f, 3.0f},           // ENV MODE 2
+    {0.001f, 4.0f},         // ATTACK
+    {0.001f, 4.0f},         // DECAY
+    {0.0f, 1.0f},           // SUSTAIN
+    {0.001f, 4.0f},         // RELEASE
+
+    {0.0f, 3.0f},           // WAVEFORM 2 MODE
+    {0.0f, 4.0f},           // WAVEFORM 2
+    {0.0f, 1.0f},           // LEVEL 2
+    {-24.0f, 24.0f},        // PITCH 2
 }};
+
+enum OscillatorModes // Only for Osc 2 for now?
+{
+    OSC_ADD,
+    OSC_FM_1,
+    OSC_LEVEL_1,
+    OSC_CUTOFF_1
+};
+enum EnvelopeModes
+{
+    ENV_LEVEL_1,
+    ENV_PITCH_1,
+    ENV_CUTOFF_1,
+    ENV_LEVEL_2
+};
+
 
 class Controls {
     public:
@@ -127,20 +147,21 @@ class Controls {
         inline float getAbsolute(ControlPorts index) {
             return control[index];
         }
-        inline double proceed() {
-            float freq = control[CONTROL_PITCH_2];
-            position += freq / rate;
-            if (control[CONTROL_WAVEFORM_2] == WAVEFORM_SQUARE) {
-                if (control[CONTROL_WAVEFORM_2_TARGET] == LEVEL_1) {
-                    float p = fmod(position, 1.0f);
-                    float val = (p < 0.5f ? 1.0f : -1.0f);
-                    val *= control[CONTROL_LEVEL_2];
-                    moddedControl[CONTROL_LEVEL] = val;
-                    // std::cout << "Mod control: " << val << std::endl;
-                }
-            }
-            return position;
-        }
+        // inline double proceed() {
+            // //MONO stuff
+            // float freq = control[CONTROL_PITCH_2];
+            // position += freq / rate;
+            // if (control[CONTROL_WAVEFORM_2] == WAVEFORM_SQUARE) {
+            //     if (control[CONTROL_WAVEFORM_2_TARGET] == LEVEL_1) {
+            //         float p = fmod(position, 1.0f);
+            //         float val = (p < 0.5f ? 1.0f : -1.0f);
+            //         val *= control[CONTROL_LEVEL_2];
+            //         moddedControl[CONTROL_LEVEL] = val;
+            //         // std::cout << "Mod control: " << val << std::endl;
+            //     }
+            // }
+            // return position;
+        // }
 };
 
 #endif

@@ -22,7 +22,8 @@ private:
     uint8_t velocity;
     double rate;
     double position;
-    float start_level;
+    float start_level_1;
+    float start_level_2;
     double freq;
     double time;
     LinearFader<float> fader;
@@ -44,7 +45,7 @@ public:
     bool isOn();
 
 private:
-    float adsr ();
+    float adsr (int whichOscillator);
     float synth ();
     float synthPartials ();
     void setCachedValue(double pos, float val);
@@ -64,7 +65,8 @@ inline Key::Key (const double rt) :
     velocity (0),
     rate (rt),
     position (0.0),
-    start_level (0.0f),
+    start_level_1 (0.0f),
+    start_level_2 (0.0f),
     freq (pow (2.0, (static_cast<double> (note) - 69.0) / 12.0) * 440.0),
     time (0.0),
     fader (1.0f),
@@ -79,7 +81,8 @@ inline void Key::press (const uint8_t nt, const uint8_t vel, Controls *c, Filter
 {
 
     controls = c;
-    start_level = adsr();
+    start_level_1 = adsr(1);
+    start_level_2 = adsr(2);
     note = nt;
     velocity = vel;
     freq = pow (2.0, (static_cast<double> (note) - 69.0) / 12.0) * 440.0;
@@ -100,7 +103,8 @@ inline void Key::release (const uint8_t nt, const uint8_t vel)
 {
     if ((status == KEY_PRESSED) && (note == nt))
     {
-        start_level = adsr ();
+        start_level_1 = adsr (1);
+        start_level_2 = adsr (2);
         time = 0.0;
         status = KEY_RELEASED;
     }
@@ -117,12 +121,32 @@ inline void Key::mute ()
     fader.set (0.0f, 0.01 * rate);
 }
 
-inline float Key::adsr ()
+inline float Key::adsr(int whichEnvelope)
 {
-    float attack = (*controls).get(CONTROL_ATTACK);
-    float decay = (*controls).get(CONTROL_DECAY);
-    float sustain = (*controls).get(CONTROL_SUSTAIN);
-    float release = (*controls).get(CONTROL_RELEASE);
+    float attack;
+    float decay;
+    float sustain;
+    float release;
+    float start_level;
+    switch (whichEnvelope) {
+        case (1):
+            attack = (*controls).get(CONTROL_ATTACK);
+            decay = (*controls).get(CONTROL_DECAY);
+            sustain = (*controls).get(CONTROL_SUSTAIN);
+            release = (*controls).get(CONTROL_RELEASE);
+            start_level = start_level_1;
+            break;
+        case (2):
+            attack = (*controls).get(CONTROL_ATTACK_2);
+            decay = (*controls).get(CONTROL_DECAY_2);
+            sustain = (*controls).get(CONTROL_SUSTAIN_2);
+            release = (*controls).get(CONTROL_RELEASE_2);
+            start_level = start_level_2;
+            break;
+        default:
+            std::cerr << "Error: Envelope #" << whichEnvelope << " not found." << std::endl;
+    }
+
 
     switch (status)
     {
@@ -169,11 +193,17 @@ inline float Key::synth()
 
 inline float Key::get ()
 {
-    return  adsr() *
-            // synth () *
-            synthPartials() *
-            (static_cast<float> (velocity) / 127.0f) *
-            fader.get();
+    float value = synthPartials() *
+                    (static_cast<float> (velocity) / 127.0f) *
+                    fader.get();
+    if ((*controls).get(CONTROL_ENV_MODE_1) == ENV_LEVEL_1) {
+        value *= adsr(1);
+    }
+    if ((*controls).get(CONTROL_ENV_MODE_2) == ENV_LEVEL_1) {
+        value *= adsr(2);
+    }
+
+    return value;
 }
 
 inline void Key::proceed ()
