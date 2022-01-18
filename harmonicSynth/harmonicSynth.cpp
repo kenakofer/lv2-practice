@@ -78,8 +78,9 @@ HarmonicSynth::HarmonicSynth (const double sample_rate, const LV2_Feature *const
     key (),
     low_pass (),
     filter (),
-    controls ()
+    controls (sample_rate)
 {
+    controls = Controls(sample_rate);
     const char* missing = lv2_features_query(
         features,
         LV2_URID__map,
@@ -141,6 +142,9 @@ void HarmonicSynth::play (const uint32_t start, const uint32_t end)
             }
         }
         filter.proceed();
+        // std::cout << &controls << std::endl;
+        // This would be for mono
+        // controls.proceed();
     }
 }
 

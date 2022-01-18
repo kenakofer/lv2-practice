@@ -5,6 +5,7 @@
 #include <cstdint>
 
 #include "Limit.hpp"
+#include "Waveform.hpp"
 
 enum ControlPorts
 {
@@ -27,6 +28,12 @@ enum ControlPorts
     CONTROL_SUSTAIN_2  = 16,
     CONTROL_RELEASE_2  = 17,
     CONTROL_NR         = 18
+};
+
+enum Targets
+{
+    LEVEL_1,
+    PEAK_PARTIAL_1
 };
 
 constexpr std::array<std::pair<float, float>, CONTROL_NR> controlLimit =
@@ -57,13 +64,18 @@ class Controls {
     private:
         std::array<const float*, CONTROL_NR> control_ptr;
         std::array<float, CONTROL_NR> control;
+        std::array<float, CONTROL_NR> moddedControl;
+        double position; // For waveform 2
+        double rate;
 
     public:
-        Controls() :
-            control_ptr {nullptr}
+        Controls(double rt) :
+            control_ptr {nullptr},
+            rate (rt)
         {
             control_ptr.fill(nullptr);
             control.fill(0.0f);
+            moddedControl.fill(0.0f);
         }
         void connectControlPort(const uint32_t port, void* data_location) {
             control_ptr[port] = static_cast<const float*>(data_location);
@@ -104,10 +116,30 @@ class Controls {
             // }
         }
         inline float get(ControlPorts index) {
-            return control[index];
+            return getAbsolute(index) + getModded(index);
         }
         inline void set(ControlPorts index, float value) {
             control[index] = value;
+        }
+        inline float getModded(ControlPorts index) {
+            return moddedControl[index];
+        }
+        inline float getAbsolute(ControlPorts index) {
+            return control[index];
+        }
+        inline double proceed() {
+            float freq = control[CONTROL_PITCH_2];
+            position += freq / rate;
+            if (control[CONTROL_WAVEFORM_2] == WAVEFORM_SQUARE) {
+                if (control[CONTROL_WAVEFORM_2_TARGET] == LEVEL_1) {
+                    float p = fmod(position, 1.0f);
+                    float val = (p < 0.5f ? 1.0f : -1.0f);
+                    val *= control[CONTROL_LEVEL_2];
+                    moddedControl[CONTROL_LEVEL] = val;
+                    // std::cout << "Mod control: " << val << std::endl;
+                }
+            }
+            return position;
         }
 };
 
