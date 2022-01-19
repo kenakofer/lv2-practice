@@ -48,7 +48,7 @@ constexpr std::array<std::pair<float, float>, CONTROL_NR> controlLimit =
     {0.0f, 1.0f},           // LEVEL
     {-24.0f, 24.0f},        // PITCH
     {-10000.0f, 10000.0f},  // CUTOFF DIFF
-    {0.0f, 30.0f},          // PEAK_PART
+    {0.0f, 60.0f},          // PEAK_PART
     {1.0f, 8.0f},           // PEAK_HEIGHT
 
     {0.0f, 3.0f},           // ENV MODE 2

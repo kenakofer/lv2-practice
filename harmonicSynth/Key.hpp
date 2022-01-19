@@ -6,6 +6,7 @@
 #include <random>
 #include <ctime>
 #include <array>
+
 #include "Waveform.hpp"
 #include "KeyStatus.hpp"
 #include "Sine.hpp"
@@ -193,17 +194,8 @@ inline float Key::synthPartials()
 
 inline float Key::synth2()
 {
-    const float p = fmod (position2, 1.0);
-    float value = 0.0f;
+    float value = valueInWaveform(static_cast<Waveform> ((*controls).get(CONTROL_WAVEFORM_2)), position2);
 
-    switch (static_cast<Waveform> ((*controls).get(CONTROL_WAVEFORM_2)))
-    {
-        case WAVEFORM_SINE:     value = sin (2.0 * M_PI * p); break;
-        case WAVEFORM_TRIANGLE: value = (p < 0.25f ? 4.0f * p : (p < 0.75f ? 1.0f - 4.0 * (p - 0.25f) : -1.0f + 4.0f * (p - 0.75f))); break;
-        case WAVEFORM_SQUARE:   value = (p < 0.5f ? 1.0f : -1.0f); break;
-        case WAVEFORM_SAW:      value = 2.0f * p - 1.0f; break;
-        default:                value = 0.0f; break;
-    }
     if ((*controls).get(CONTROL_ENV_MODE_1) == ENV_LEVEL_2) value *= adsr(1);
     if ((*controls).get(CONTROL_ENV_MODE_2) == ENV_LEVEL_2) value *= adsr(2);
 
