@@ -125,11 +125,11 @@ public:
         const float pos = fmod(position, 1.0);
 
         for (int p = bottom; p < top; p++) {
-            if (p >= PARTIAL_NR) break;
+            // if (p >= PARTIAL_NR) break;
             if (freq * (p+1) > 20000) break;
 
             value += sin(2.0 * M_PI * (p+1) * pos) *
-                        PARTIAL_AMPLITUDES[waveform][p] *
+                        getPartialAmplitude(waveform, p+1) *
                         res_height * (1 - (abs(center - p) / res_width));
         }
         return value;

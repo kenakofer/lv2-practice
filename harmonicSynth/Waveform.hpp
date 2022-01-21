@@ -24,6 +24,19 @@ constexpr std::array<std::array<float, PARTIAL_NR>, WAVEFORM_NR> PARTIAL_AMPLITU
     {1.00f, -1.0f/2, 1.0f/3, -1.0f/4, 1.0f/5, -1.0f/6, 1.0f/7, -1.0f/8, 1.0f/9, -1.0f/10, 1.0f/11, -1.0f/12, 1.0f/13, -1.0f/14, 1.0f/15, -1.0f/16, 1.0f/17, -1.0f/18, 1.0f/19, -1.0f/20 , 1.0f/21, -1.0f/22, 1.0f/23, -1.0f/24, 1.0f/25, -1.0f/26, 1.0f/27, -1.0f/28, 1.0f/29, -1.0f/30, 1.0f/31, -1.0f/32, 1.0f/33, -1.0f/34, 1.0f/35, -1.0f/36, 1.0f/37, -1.0f/38, 1.0f/39, -1.0f/40, 1.0f/41, -1.0f/42, 1.0f/43, -1.0f/44, 1.0f/45, -1.0f/46, 1.0f/47, -1.0f/48, 1.0f/49, -1.0f/50}
 }};
 
+inline float getPartialAmplitude(const Waveform waveform, const int partial) {
+    if (partial <= PARTIAL_NR) return PARTIAL_AMPLITUDES[waveform][partial-1];
+
+    switch (waveform)
+    {
+        case WAVEFORM_SINE:     return partial == 1 ? 1.0f : 0.0f;
+        case WAVEFORM_TRIANGLE: return (partial % 2 == 0) ? 0.0f : (partial % 4 == 3 ? (-1.0f / partial / partial) : (1.0f / partial / partial));
+        case WAVEFORM_SQUARE:   return (partial % 2 == 0) ? 0.0f : (1.0f / partial);
+        case WAVEFORM_SAW:      return (partial % 2 == 0) ? (-1.0f / partial) : (1.0f / partial);
+        default:                return 0.0f;
+    }
+}
+
 inline float valueInWaveform(Waveform waveform, double position) {
     if (waveform == WAVEFORM_SAW) position += .5; // To line up with the partial amplitudes above
 
