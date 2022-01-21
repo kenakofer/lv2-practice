@@ -6,6 +6,7 @@
 #include <random>
 #include <ctime>
 #include <array>
+#include <iostream>
 
 #include "Waveform.hpp"
 #include "KeyStatus.hpp"
