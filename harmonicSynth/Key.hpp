@@ -188,7 +188,7 @@ inline float Key::synthPartials()
     if ((*controls).get(CONTROL_WAVEFORM_2_MODE) == OSC_CUTOFF_1) {
         peak_part += 4 * synth2();
     }
-    return (*filter).valueInWave(freq, position, peak_part);
+    return (*filter).resonatedValueInWave(freq, position, peak_part, 3.0, 5.0);
 
 }
 

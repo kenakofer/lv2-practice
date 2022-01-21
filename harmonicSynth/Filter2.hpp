@@ -114,11 +114,32 @@ public:
         }
     }
 
+    inline float resonatedValueInWave(float freq, float position, float partials, float res_width, float res_height) {
+        float value = valueInWave(freq, position, partials);
+        if (res_height <= 0.0) return value;
+
+        int bottom = (int)(partials - res_width*2) + 1;
+        if (bottom <= 1) bottom = 1; // We don't want to amplify the fundamental maybe
+        const int top = (int)partials + 1;
+        const float center = partials - res_width;
+        const float pos = fmod(position, 1.0);
+
+        for (int p = bottom; p < top; p++) {
+            if (p >= PARTIAL_NR) break;
+            if (freq * (p+1) > 20000) break;
+
+            value += sin(2.0 * M_PI * (p+1) * pos) *
+                        PARTIAL_AMPLITUDES[waveform][p] *
+                        res_height * (1 - (abs(center - p) / res_width));
+        }
+        return value;
+    }
+
     inline float valueInWave(float freq, float position, float partials) {
         if (waveform == WAVEFORM_NOISE) return valueInNoise(freq, position, partials);
 
-        float pos = fmod(position, 1.0);
-        int i = (int)(CACHED_WAVE_SAMPLES * pos);
+        const float pos = fmod(position, 1.0);
+        const int i = (int)(CACHED_WAVE_SAMPLES * pos);
 
         if (freq > PARTIAL_LIMIT_10 && partials > 6.0f) return cachedValues06[i];
         if (freq > PARTIAL_LIMIT_20 && partials > 10.0f) return cachedValues10[i];
@@ -126,41 +147,43 @@ public:
         if (freq > PARTIAL_LIMIT_40 && partials > 30.0f) return cachedValues30[i];
         if (freq > PARTIAL_LIMIT_50 && partials > 40.0f) return cachedValues40[i];
 
+        float p1, p2;
+
         if (partials < 1) {
             return partials * cachedValues01[i];
         } else if (partials < 6) {
-            float p2 = (partials - 1) / 5;
-            float p1 = 1.0f - p2;
+            p2 = (partials - 1) / 5;
+            p1 = 1.0f - p2;
             return (p1 * cachedValues01[i]) + (p2 * cachedValues06[i]);
         } else if (partials < 10) {
-            float p2 = (partials - 6) / 4;
-            float p1 = 1.0f - p2;
+            p2 = (partials - 6) / 4;
+            p1 = 1.0f - p2;
             return (p1 * cachedValues06[i]) + (p2 * cachedValues10[i]);
         } else if (partials < 20) {
-            float p2 = (partials - 10) / 10;
-            float p1 = 1.0f - p2;
+            p2 = (partials - 10) / 10;
+            p1 = 1.0f - p2;
             return (p1 * cachedValues10[i]) + (p2 * cachedValues20[i]);
         } else if (partials < 30) {
-            float p2 = (partials - 20) / 10;
-            float p1 = 1.0f - p2;
+            p2 = (partials - 20) / 10;
+            p1 = 1.0f - p2;
             return (p1 * cachedValues20[i]) + (p2 * cachedValues30[i]);
         } else if (partials < 40) {
-            float p2 = (partials - 30) / 10;
-            float p1 = 1.0f - p2;
+            p2 = (partials - 30) / 10;
+            p1 = 1.0f - p2;
             return (p1 * cachedValues30[i]) + (p2 * cachedValues40[i]);
         } else if (partials < 50) {
-            float p2 = (partials - 40) / 10;
-            float p1 = 1.0f - p2;
+            p2 = (partials - 40) / 10;
+            p1 = 1.0f - p2;
             return (p1 * cachedValues40[i]) + (p2 * cachedValues50[i]);
         } else {
-            float p2 = (partials - 50) / 10;
-            float p1 = 1.0f - p2;
+            p2 = (partials - 50) / 10;
+            p1 = 1.0f - p2;
             return (p1 * cachedValues50[i]) + (p2 * valueInWaveform(waveform, pos)); //Average with the perfect waveform type
         }
     }
 
     inline float valueInNoise(float freq, float position, float partials) {
-        float samples_per_cycle = 44100.0f / 750;
+        const float samples_per_cycle = 44100.0f / 750;
 
         float value = 0.0f;
         float i=0.0f;
