@@ -91,6 +91,11 @@ class Controls {
         double rate;
 
     public:
+        Controls() :
+            Controls (44100)
+        {
+        }
+
         Controls(double rt) :
             control_ptr {nullptr},
             rate (rt)
