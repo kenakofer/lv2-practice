@@ -28,7 +28,7 @@ class Filter
         float cutoff_diff;
         float cutoff_partial;
         float peak_freq;
-        float peak_height;
+        float res_height;
         Waveform waveform;
         Controls* controls;
 
@@ -67,7 +67,7 @@ class Filter
 };
 
 inline Filter::Filter () :
-    peak_height (1.2f),
+    res_height (1.2f),
     cutoff_partial (30.0f),
     cutoff_diff (1000.0f),
     coveredDistance (0),
@@ -90,18 +90,18 @@ inline float Filter::attenuationForFreq(float freq) {
 }
 inline float Filter::attenuationForFreq(float freq, float pf) {
     float cf = pf + cutoff_diff;
-    float s = peak_height / (pf - cf);
-    float ff = pf + (peak_height - 1.0f) / s;
+    float s = res_height / (pf - cf);
+    float ff = pf + (res_height - 1.0f) / s;
     if (s > 0) {
         // Hi pass
         if (freq < cf) return 0.0f;
         if (freq < pf) return s * (freq - cf);
-        if (freq < ff) return peak_height - (s * (freq - pf));
+        if (freq < ff) return res_height - (s * (freq - pf));
         else return 1.0f;
     } else {
         // Lo pass
         if (freq < ff) return 1.0f;
-        if (freq < pf) return peak_height - (s * (freq - pf));
+        if (freq < pf) return res_height - (s * (freq - pf));
         if (freq < cf) return s * (freq - cf);
         else return 0.0f;
     }
@@ -111,7 +111,7 @@ inline void Filter::setValues(Controls *c) {
     cutoff_diff = (*controls).get(CONTROL_CUTOFF_DIFF);
     cutoff_partial = (*controls).get(CONTROL_CUTOFF);
 
-    peak_height = (*controls).get(CONTROL_PEAK_HEIGHT);
+    res_height = (*controls).get(CONTROL_RES_HEIGHT);
     waveform = static_cast<Waveform>((*controls).get(CONTROL_WAVEFORM));
     _recalculate_values();
 }
@@ -124,13 +124,13 @@ inline void Filter::_recalculate_values() {
     } else if (cutoff_freq > 20000.0f) {
         cutoff_freq == 20000.0f;
     }
-    slope = peak_height / (peak_freq - cutoff_freq);
-    flat_freq = peak_freq + (peak_height - 1.0f) / slope;
+    slope = res_height / (peak_freq - cutoff_freq);
+    flat_freq = peak_freq + (res_height - 1.0f) / slope;
 
     // std::cout << "New filter settings for an A440 note:" << std::endl;
     // std::cout << "Cutoff freq: " << cutoff_freq << std::endl;
     // std::cout << "Peak freq: " << peak_freq << std::endl;
-    // std::cout << "Peak height: " << peak_height << std::endl;
+    // std::cout << "res height: " << res_height << std::endl;
 
     _fillStartCacheWithCurrent();
     _fillDestCacheWithComputed();
