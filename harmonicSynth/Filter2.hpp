@@ -114,14 +114,14 @@ public:
         }
     }
 
-    inline float resonatedValueInWave(float freq, float position, float partials, float res_width, float res_height) {
-        float value = valueInWave(freq, position, partials);
+    inline float resonatedValueInWave(float freq, float position, float cutoff_partial, float res_width, float res_height) {
+        float value = valueInWave(freq, position, cutoff_partial);
         if (res_height <= 0.0) return value;
 
-        int bottom = (int)(partials - res_width*2) + 1;
+        int bottom = (int)(cutoff_partial - res_width*2) + 1;
         if (bottom <= 1) bottom = 1; // We don't want to amplify the fundamental maybe
-        const int top = (int)partials + 1;
-        const float center = partials - res_width;
+        const int top = (int)cutoff_partial + 1;
+        const float center = cutoff_partial - res_width;
         const float pos = fmod(position, 1.0);
 
         for (int p = bottom; p < top; p++) {
@@ -135,66 +135,66 @@ public:
         return value;
     }
 
-    inline float valueInWave(float freq, float position, float partials) {
-        if (waveform == WAVEFORM_NOISE) return valueInNoise(freq, position, partials);
+    inline float valueInWave(float freq, float position, float cutoff_partial) {
+        if (waveform == WAVEFORM_NOISE) return valueInNoise(freq, position, cutoff_partial);
 
         const float pos = fmod(position, 1.0);
         const int i = (int)(CACHED_WAVE_SAMPLES * pos);
 
-        if (freq > PARTIAL_LIMIT_10 && partials > 6.0f) return cachedValues06[i];
-        if (freq > PARTIAL_LIMIT_20 && partials > 10.0f) return cachedValues10[i];
-        if (freq > PARTIAL_LIMIT_30 && partials > 20.0f) return cachedValues20[i];
-        if (freq > PARTIAL_LIMIT_40 && partials > 30.0f) return cachedValues30[i];
-        if (freq > PARTIAL_LIMIT_50 && partials > 40.0f) return cachedValues40[i];
+        if (freq > PARTIAL_LIMIT_10 && cutoff_partial > 6.0f) return cachedValues06[i];
+        if (freq > PARTIAL_LIMIT_20 && cutoff_partial > 10.0f) return cachedValues10[i];
+        if (freq > PARTIAL_LIMIT_30 && cutoff_partial > 20.0f) return cachedValues20[i];
+        if (freq > PARTIAL_LIMIT_40 && cutoff_partial > 30.0f) return cachedValues30[i];
+        if (freq > PARTIAL_LIMIT_50 && cutoff_partial > 40.0f) return cachedValues40[i];
 
         float p1, p2;
 
-        if (partials < 1) {
-            return partials * cachedValues01[i];
-        } else if (partials < 6) {
-            p2 = (partials - 1) / 5;
+        if (cutoff_partial < 1) {
+            return cutoff_partial * cachedValues01[i];
+        } else if (cutoff_partial < 6) {
+            p2 = (cutoff_partial - 1) / 5;
             p1 = 1.0f - p2;
             return (p1 * cachedValues01[i]) + (p2 * cachedValues06[i]);
-        } else if (partials < 10) {
-            p2 = (partials - 6) / 4;
+        } else if (cutoff_partial < 10) {
+            p2 = (cutoff_partial - 6) / 4;
             p1 = 1.0f - p2;
             return (p1 * cachedValues06[i]) + (p2 * cachedValues10[i]);
-        } else if (partials < 20) {
-            p2 = (partials - 10) / 10;
+        } else if (cutoff_partial < 20) {
+            p2 = (cutoff_partial - 10) / 10;
             p1 = 1.0f - p2;
             return (p1 * cachedValues10[i]) + (p2 * cachedValues20[i]);
-        } else if (partials < 30) {
-            p2 = (partials - 20) / 10;
+        } else if (cutoff_partial < 30) {
+            p2 = (cutoff_partial - 20) / 10;
             p1 = 1.0f - p2;
             return (p1 * cachedValues20[i]) + (p2 * cachedValues30[i]);
-        } else if (partials < 40) {
-            p2 = (partials - 30) / 10;
+        } else if (cutoff_partial < 40) {
+            p2 = (cutoff_partial - 30) / 10;
             p1 = 1.0f - p2;
             return (p1 * cachedValues30[i]) + (p2 * cachedValues40[i]);
-        } else if (partials < 50) {
-            p2 = (partials - 40) / 10;
+        } else if (cutoff_partial < 50) {
+            p2 = (cutoff_partial - 40) / 10;
             p1 = 1.0f - p2;
             return (p1 * cachedValues40[i]) + (p2 * cachedValues50[i]);
         } else {
-            p2 = (partials - 50) / 10;
+            p2 = (cutoff_partial - 50) / 10;
             p1 = 1.0f - p2;
             return (p1 * cachedValues50[i]) + (p2 * valueInWaveform(waveform, pos)); //Average with the perfect waveform type
         }
     }
 
-    inline float valueInNoise(float freq, float position, float partials) {
+    inline float valueInNoise(float freq, float position, float cutoff_partial) {
         const float samples_per_cycle = 44100.0f / 750;
 
         float value = 0.0f;
         float i=0.0f;
         while (i < 20) {
             if ((freq * (i+1)) > (44100 / 2)) break;
-            if (i >= partials) break;
+            if (i >= cutoff_partial) break;
 
             int index = ((int)(samples_per_cycle * position * (i+1))) % WHITEBAND500TO1K_LENGTH;
             float factor = 1.0;
-            if ((partials - 1 < (i-1)) && ((i-1) < partials)) {
-                factor = 1.0f - (partials - (i-1));
+            if ((cutoff_partial - 1 < (i-1)) && ((i-1) < cutoff_partial)) {
+                factor = 1.0f - (cutoff_partial - (i-1));
             }
             value += WHITEBAND500TO1K_SAMPLES[index] * factor;
             if (i==0.0f) i += .85f;

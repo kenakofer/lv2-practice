@@ -178,17 +178,17 @@ inline float Key::synthPartials()
 {
     // return (*filter).valueInWave(freq, position);
 
-    float peak_part = (*controls).get(CONTROL_PEAK_PART);
+    float cutoff_partial = (*controls).get(CONTROL_CUTOFF);
     if ((*controls).get(CONTROL_ENV_MODE_1) == ENV_CUTOFF_1) {
-        peak_part += 4 * adsr(1);
+        cutoff_partial += 4 * adsr(1);
     }
     if ((*controls).get(CONTROL_ENV_MODE_2) == ENV_CUTOFF_1) {
-        peak_part += 4 * adsr(2) * (*controls).get(CONTROL_ENV_AMT_2);
+        cutoff_partial += 4 * adsr(2) * (*controls).get(CONTROL_ENV_AMT_2);
     }
     if ((*controls).get(CONTROL_WAVEFORM_2_MODE) == OSC_CUTOFF_1) {
-        peak_part += 4 * synth2();
+        cutoff_partial += 4 * synth2();
     }
-    return (*filter).resonatedValueInWave(freq, position, peak_part, 3.0, 5.0);
+    return (*filter).resonatedValueInWave(freq, position, cutoff_partial, 3.0, 5.0);
 
 }
 

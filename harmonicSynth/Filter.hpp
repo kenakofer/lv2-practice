@@ -26,7 +26,7 @@ class Filter
 {
     private:
         float cutoff_diff;
-        float peak_partial;
+        float cutoff_partial;
         float peak_freq;
         float peak_height;
         Waveform waveform;
@@ -55,7 +55,7 @@ class Filter
         float attenuationForFreq(float freq, float pf);
         void setValues(Controls *c);
         float valueInWave(float freq, float pos);
-        float valueInWaveNoCache(float freq, float pos, float peak_partial);
+        float valueInWaveNoCache(float freq, float pos, float cutoff_partial);
         float getValueInNoise(float freq, float pos);
         void proceed();
 
@@ -68,7 +68,7 @@ class Filter
 
 inline Filter::Filter () :
     peak_height (1.2f),
-    peak_partial (30.0f),
+    cutoff_partial (30.0f),
     cutoff_diff (1000.0f),
     coveredDistance (0),
     waveform (WAVEFORM_SINE),
@@ -109,7 +109,7 @@ inline float Filter::attenuationForFreq(float freq, float pf) {
 inline void Filter::setValues(Controls *c) {
     controls = c;
     cutoff_diff = (*controls).get(CONTROL_CUTOFF_DIFF);
-    peak_partial = (*controls).get(CONTROL_PEAK_PART);
+    cutoff_partial = (*controls).get(CONTROL_CUTOFF);
 
     peak_height = (*controls).get(CONTROL_PEAK_HEIGHT);
     waveform = static_cast<Waveform>((*controls).get(CONTROL_WAVEFORM));
@@ -117,7 +117,7 @@ inline void Filter::setValues(Controls *c) {
 }
 
 inline void Filter::_recalculate_values() {
-    peak_freq = KEY_TRACK_FREQUENCY * peak_partial;
+    peak_freq = KEY_TRACK_FREQUENCY * cutoff_partial;
     cutoff_freq = peak_freq + cutoff_diff;
     if (cutoff_freq < 20.0f) {
         cutoff_freq = 20.0f;

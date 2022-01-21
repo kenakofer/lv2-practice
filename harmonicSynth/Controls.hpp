@@ -19,7 +19,7 @@ enum ControlPorts
     CONTROL_LEVEL      = 6,
     CONTROL_PITCH      = 7,
     CONTROL_CUTOFF_DIFF= 8,
-    CONTROL_PEAK_PART  = 9,
+    CONTROL_CUTOFF  = 9,
     CONTROL_PEAK_HEIGHT= 10,
 
     CONTROL_ENV_MODE_2 = 11,
@@ -48,7 +48,7 @@ constexpr std::array<std::pair<float, float>, CONTROL_NR> controlLimit =
     {0.0f, 1.0f},           // LEVEL
     {-24.0f, 24.0f},        // PITCH
     {-10000.0f, 10000.0f},  // CUTOFF DIFF
-    {0.0f, 60.0f},          // PEAK_PART
+    {0.0f, 60.0f},          // CUTOFF
     {1.0f, 8.0f},           // PEAK_HEIGHT
 
     {0.0f, 3.0f},           // ENV MODE 2
@@ -131,7 +131,7 @@ class Controls {
             // if (refresh_filter) {
             //     filter.setValues(
             //         control[CONTROL_CUTOFF_DIFF],
-            //         control[CONTROL_PEAK_PART],
+            //         control[CONTROL_CUTOFF],
             //         control[CONTROL_PEAK_HEIGHT],
             //         static_cast<Waveform> (control[CONTROL_WAVEFORM])
             //     );
