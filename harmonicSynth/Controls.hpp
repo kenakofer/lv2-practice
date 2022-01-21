@@ -18,9 +18,9 @@ enum ControlPorts
     CONTROL_WAVEFORM   = 5,
     CONTROL_LEVEL      = 6,
     CONTROL_PITCH      = 7,
-    CONTROL_CUTOFF_DIFF= 8,
-    CONTROL_CUTOFF  = 9,
-    CONTROL_RES_HEIGHT= 10,
+    CONTROL_CUTOFF  = 8,
+    CONTROL_RES_HEIGHT= 9,
+    CONTROL_RES_WIDTH = 10,
 
     CONTROL_ENV_MODE_2 = 11,
     CONTROL_ENV_AMT_2  = 12,
@@ -47,9 +47,9 @@ constexpr std::array<std::pair<float, float>, CONTROL_NR> controlLimit =
     {0.0f, 4.0f},           // WAVEFORM
     {0.0f, 1.0f},           // LEVEL
     {-24.0f, 24.0f},        // PITCH
-    {-10000.0f, 10000.0f},  // CUTOFF DIFF
     {0.0f, 60.0f},          // CUTOFF
     {1.0f, 8.0f},           // RES_HEIGHT
+    {1.0f, 30.0f},          // RES_WIDTH
 
     {0.0f, 3.0f},           // ENV MODE 2
     {0.0f, 10.0f},          // ENV_AMT_2

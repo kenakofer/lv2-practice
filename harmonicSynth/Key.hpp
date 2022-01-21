@@ -188,7 +188,7 @@ inline float Key::synthPartials()
     if ((*controls).get(CONTROL_WAVEFORM_2_MODE) == OSC_CUTOFF_1) {
         cutoff_partial += 4 * synth2();
     }
-    return (*filter).resonatedValueInWave(freq, position, cutoff_partial, 3.0, (*controls).get(CONTROL_RES_HEIGHT));
+    return (*filter).resonatedValueInWave(freq, position, cutoff_partial, (*controls).get(CONTROL_RES_WIDTH), (*controls).get(CONTROL_RES_HEIGHT));
 
 }
 
