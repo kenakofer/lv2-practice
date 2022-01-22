@@ -233,7 +233,6 @@ inline float Key::get ()
 inline void Key::proceed ()
 {
     time += 1.0 / rate;
-    std::cout << "Proceeding key to time: " << time << std::endl;
 
     // Find oscillator 1's freq:
     float modfreq = freq;
@@ -250,19 +249,14 @@ inline void Key::proceed ()
     // Move Osc 1 forward correctly
     position += modfreq / rate;
 
-    std::cout << "   Proceeding position to: " << position << std::endl;
-
     // Move Osc 2 forward correctly
     position2 += freq2 / rate;
-
-    std::cout << "   Proceeding position2 to: " << position2 << std::endl;
 
     if ((status == KEY_RELEASED) &&
             (time >= (*controls).get(CONTROL_RELEASE)) &&
             (time >= (*controls).get(CONTROL_RELEASE_2))) {
         off();
     }
-    std::cout << "  ..finished" <<  std::endl;
 }
 
 inline bool Key::isOn () {
