@@ -206,8 +206,9 @@ inline float Key::synth2()
 
 inline float Key::get ()
 {
-    float value = synthPartials() *
+    float value = synthPartials() * // Synth partials is 0 for some reason!!!
                     (*controls).get(CONTROL_LEVEL);
+
     if ((*controls).get(CONTROL_ENV_MODE_1) == ENV_LEVEL_1) {
         value *= adsr(1);
     }
@@ -232,6 +233,7 @@ inline float Key::get ()
 inline void Key::proceed ()
 {
     time += 1.0 / rate;
+    std::cout << "Proceeding key to time: " << time << std::endl;
 
     // Find oscillator 1's freq:
     float modfreq = freq;
@@ -248,14 +250,19 @@ inline void Key::proceed ()
     // Move Osc 1 forward correctly
     position += modfreq / rate;
 
+    std::cout << "   Proceeding position to: " << position << std::endl;
+
     // Move Osc 2 forward correctly
     position2 += freq2 / rate;
+
+    std::cout << "   Proceeding position2 to: " << position2 << std::endl;
 
     if ((status == KEY_RELEASED) &&
             (time >= (*controls).get(CONTROL_RELEASE)) &&
             (time >= (*controls).get(CONTROL_RELEASE_2))) {
         off();
     }
+    std::cout << "  ..finished" <<  std::endl;
 }
 
 inline bool Key::isOn () {

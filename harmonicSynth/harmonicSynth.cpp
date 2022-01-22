@@ -117,9 +117,7 @@ void HarmonicSynth::activate()
     position = 0.0;
     actual_freq = 440.0;
     actual_level = 0.1;
-    filter.recalculateValues(
-        &controls
-    );
+    filter.setWaveform(WAVEFORM_SINE);
 }
 
 void HarmonicSynth::play (const uint32_t start, const uint32_t end)
@@ -157,8 +155,8 @@ void HarmonicSynth::run(const uint32_t sample_count)
 
     if (controls.updateValues()) {
         /* filter refreshing and control moving */
-        filter.recalculateValues(
-            &controls
+        filter.setWaveform(
+            static_cast<Waveform>(controls.get(CONTROL_WAVEFORM))
         );
     }
 

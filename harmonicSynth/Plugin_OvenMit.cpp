@@ -1,6 +1,7 @@
 #include "AudioPluginUtil.h"
 #include "Key.hpp"
 #include "Filter2.hpp"
+#include <iostream>
 
 namespace OvenMit
 {
@@ -51,6 +52,7 @@ namespace OvenMit
 
     inline OvenMitInstance* GetOvenMitInstance(int index)
     {
+        // std::cout << "GetOvenMitInstance..." << std::endl;
         static bool initialized[MAX_INSTANCES] = { false };
         static OvenMitInstance instance[MAX_INSTANCES];
         if (index < 0 || index >= MAX_INSTANCES)
@@ -58,7 +60,13 @@ namespace OvenMit
         if (!initialized[index])
         {
             initialized[index] = true;
+            instance[index].controls = Controls(44100);
+            instance[index].filter = Filter();
+            instance[index].filter.setWaveform(WAVEFORM_SINE);
+            instance[index].keys[0] = Key(44100);
+            instance[index].keys[0].press(68, 127, &(instance[index].controls), &(instance[index].filter));
         }
+        // std::cout << "    ...finished" << std::endl;
         return &instance[index];
     }
 
@@ -98,39 +106,54 @@ namespace OvenMit
 
     UNITY_AUDIODSP_RESULT UNITY_AUDIODSP_CALLBACK ProcessCallback(UnityAudioEffectState* state, float* inbuffer, float* outbuffer, unsigned int length, int inchannels, int outchannels)
     {
+        // std::cout << "ProcessCallback..." << std::endl;
         EffectData* data = state->GetEffectData<EffectData>();
         OvenMitInstance* instance = GetOvenMitInstance((int)data->parameters[P_INSTANCE]);
+        // std::cout << "  Got oven mit instance" << std::endl;
         for (unsigned int n = 0; n < length; n++)
         {
+            // std::cout << "  Get from keys..." << std::endl;
+            float value = instance->keys[0].get();
+            // std::cout << "  Got value " << value << std::endl;
             for (int i = 0; i < outchannels; i++)
             {
-                float value = instance->keys[0].get();
+                // std::cout << "  Write to outchannel " << i << std::endl;
                 outbuffer[n * outchannels + i] = value;
             }
+            // std::cout << "  Proceeding key" << std::endl;
             instance->keys[0].proceed();
         }
+        // std::cout << "  ...finished" << std::endl;
 
         return UNITY_AUDIODSP_OK;
     }
 
     UNITY_AUDIODSP_RESULT UNITY_AUDIODSP_CALLBACK CreateCallback(UnityAudioEffectState* state)
     {
+        // std::cout << "CreateCallback..." << std::endl;
         EffectData* effectdata = new EffectData;
         memset(effectdata, 0, sizeof(EffectData));
+        // std::cout << "  Creating an instance" << std::endl;
         for (int n = 0; n < MAX_KEYS; n++) {
-            // TODO any initialization needed here?
-            // effectdata->keys[n].Init();
+            int instance_index = effectdata->parameters[P_INSTANCE];
+            OvenMitInstance* instance = GetOvenMitInstance(instance_index);
+            for (int k=0; k<P_NUM-1; k++) {
+                instance->controls.set(static_cast<ControlPorts>(k), effectdata->parameters[k]);
+            }
         }
         state->effectdata = effectdata;
         InitParametersFromDefinitions(InternalRegisterEffectDefinition, effectdata->parameters);
+        // std::cout << "  ...finished" << std::endl;
         return UNITY_AUDIODSP_OK;
     }
 
     /* API functions */
 
-    extern "C" UNITY_AUDIODSP_EXPORT_API void OvenMit_TestKeyPress(int index) {
-        OvenMitInstance* instance = GetOvenMitInstance(index);
+    extern "C" UNITY_AUDIODSP_EXPORT_API void OvenMit_TestKeyPress() {
+        // std::cout << "OvenMit_TestKeyPress..." << std::endl;
+        OvenMitInstance* instance = GetOvenMitInstance(0);
         instance->keys[0].press(69, 127, &(instance->controls), &(instance->filter));
+        // std::cout << "   ...finished." << std::endl;
     }
 
     ////////////////////////////////////////////
@@ -146,10 +169,19 @@ namespace OvenMit
 
     UNITY_AUDIODSP_RESULT UNITY_AUDIODSP_CALLBACK SetFloatParameterCallback(UnityAudioEffectState* state, int index, float value)
     {
+        // std::cout << "SetFloatParameterCallback... " << index << " to " << value << std::endl;
         EffectData* data = state->GetEffectData<EffectData>();
         if (index >= P_NUM)
             return UNITY_AUDIODSP_ERR_UNSUPPORTED;
         data->parameters[index] = value;
+        OvenMitInstance* instance = GetOvenMitInstance((int)data->parameters[P_INSTANCE]);
+        instance->controls.set(static_cast<ControlPorts>(index), value);
+        if (index == P_WAVEFORM) {
+            instance->filter.setWaveform(
+                static_cast<Waveform>((int)value)
+            );
+        }
+        // std::cout << "   ...finished." << std::endl;
         return UNITY_AUDIODSP_OK;
     }
 

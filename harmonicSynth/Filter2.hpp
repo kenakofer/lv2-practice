@@ -5,7 +5,6 @@
 #include <math.h>
 #include "Waveform.hpp"
 #include "whiteband500to1k.hpp"
-#include "Controls.hpp"
 
 const int CACHED_WAVE_SAMPLES = 512;
 
@@ -26,7 +25,6 @@ const float PARTIAL_LIMIT_50 = 22000.0f / 50;
 class Filter
 {
 private:
-    Controls* controls;
     Waveform waveform;
 
     std::array<float, CACHED_WAVE_SAMPLES> cachedValues01;
@@ -50,15 +48,12 @@ public:
         cachedValues50.fill(0.0f);
     }
 
-
-    inline void recalculateValues(Controls *c) {
-        controls = c;
+    inline void setWaveform(Waveform w) {
+        waveform = w;
         fillCache();
     }
 
     inline void fillCache() {
-        waveform = static_cast<Waveform>((*controls).get(CONTROL_WAVEFORM));
-
         float value;
         for (int n=0; n<CACHED_WAVE_SAMPLES; n++) {
             value = 0.0f;
