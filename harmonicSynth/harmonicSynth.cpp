@@ -19,9 +19,9 @@
 #include <lv2/atom/util.h>
 
 #include "Controls.hpp"
-#include "BMap.hpp"
 #include "LinearFader.hpp"
 #include "Key.hpp"
+#include "KeyMap.hpp"
 #include "LowPassBasic.hpp"
 #include "Filter2.hpp"
 
@@ -51,7 +51,7 @@ private:
     float actual_freq;
     float actual_level;
     LV2_URID_Map* map;
-    BUtilities::BMap<uint8_t, Key, 128> key;
+    KeyMap keys;
     LowPassBasic low_pass;
     Filter filter;
     Controls controls;
@@ -74,7 +74,7 @@ HarmonicSynth::HarmonicSynth (const double sample_rate, const LV2_Feature *const
     position (0.0),
     actual_freq (0.0),
     map (nullptr),
-    key (),
+    keys (),
     low_pass (),
     filter (),
     controls (sample_rate)
@@ -125,22 +125,16 @@ void HarmonicSynth::play (const uint32_t start, const uint32_t end)
     for (uint32_t i = start; i < end; ++i)
     {
         audio_out_ptr[i] = 0.0f;
-        for (BUtilities::BMap<uint8_t, Key, 128>::iterator it = key.begin(); it < key.end(); /* empty */) {
-            BUtilities::BMap<uint8_t, Key, 128>::reference k = *it;
-
-            if (k.second.isOn()) {
-                audio_out_ptr[i] += k.second.get();
-                // audio_out_ptr[i] = low_pass.transform(audio_out_ptr[i]);
-                k.second.proceed();
-                ++it;
+        keys.startLoop();
+        Key* k;
+        while (k = keys.getNext()) {
+            if (k->isOn()) {
+                audio_out_ptr[i] += k->get();
+                k->proceed();
             } else {
-                it = key.erase(it);
+                keys.erasePrevious();
             }
         }
-        // filter.proceed();
-        // std::cout << &controls << std::endl;
-        // This would be for mono
-        // controls.proceed();
     }
 }
 
@@ -175,7 +169,7 @@ void HarmonicSynth::run(const uint32_t sample_count)
 
             switch (typ) {
                 case LV2_MIDI_MSG_NOTE_ON:
-                    key[msg[1] & 0x7f].press(
+                    keys.getKey(msg[1] & 0x7f)->press(
                         msg[1], /* note */
                         msg[2], /* velocity */
                         &controls,
@@ -183,18 +177,18 @@ void HarmonicSynth::run(const uint32_t sample_count)
                     );
                     break;
                 case LV2_MIDI_MSG_NOTE_OFF:
-                    key[msg[1] & 0x7f].release (msg[1], msg[2]);
+                    keys.getKey(msg[1] & 0x7f)->release (msg[1], msg[2]);
                     break;
                 case LV2_MIDI_MSG_CONTROLLER:
                     if (msg[1] == LV2_MIDI_CTL_ALL_NOTES_OFF) {
-                        for (BUtilities::BMap<uint8_t, Key, 128>::reference k : key) {
-                            k.second.release();
-                        }
+                        keys.startLoop();
+                        Key* k;
+                        while (k = keys.getNext()) k->release();
                     }
                     else if (msg[1] == LV2_MIDI_CTL_ALL_SOUNDS_OFF) {
-                        for (BUtilities::BMap<uint8_t, Key, 128>::reference k : key) {
-                            k.second.mute();
-                        }
+                        keys.startLoop();
+                        Key* k;
+                        while (k = keys.getNext()) k->mute();
                     }
                     break;
             }
